@@ -318,29 +318,165 @@ class TestProcessComment:
 
 
 class TestConfigScanComments:
-    def test_scan_comments_defaults_true(self):
+    def _reload_config(self, env: dict) -> "types.ModuleType":
+        import importlib
         import os
-        from unittest.mock import patch as mpatch
-        with mpatch.dict(os.environ, {}, clear=False):
-            env = {"SCAN_COMMENTS": "true"}
-            with mpatch.dict(os.environ, env):
-                result = os.environ.get("SCAN_COMMENTS", "true").strip().lower() not in ("false", "0", "no")
-                assert result is True
+        import types
+        import reddit_scam_sentry.config as cfg_mod
+        with patch.dict(os.environ, env, clear=False):
+            importlib.reload(cfg_mod)
+            return cfg_mod
+
+    def test_scan_comments_default_is_true(self):
+        import os
+        import importlib
+        import reddit_scam_sentry.config as cfg_mod
+        env = {
+            "REDDIT_CLIENT_ID": "x", "REDDIT_CLIENT_SECRET": "x",
+            "REDDIT_USERNAME": "x", "REDDIT_PASSWORD": "x",
+        }
+        env.pop("SCAN_COMMENTS", None)
+        with patch.dict(os.environ, env, clear=False):
+            os.environ.pop("SCAN_COMMENTS", None)
+            importlib.reload(cfg_mod)
+            assert cfg_mod.SCAN_COMMENTS is True
 
     def test_scan_comments_false_string(self):
         import os
-        result = "false".strip().lower() not in ("false", "0", "no")
-        assert result is False
+        import importlib
+        import reddit_scam_sentry.config as cfg_mod
+        env = {
+            "REDDIT_CLIENT_ID": "x", "REDDIT_CLIENT_SECRET": "x",
+            "REDDIT_USERNAME": "x", "REDDIT_PASSWORD": "x",
+            "SCAN_COMMENTS": "false",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            importlib.reload(cfg_mod)
+            assert cfg_mod.SCAN_COMMENTS is False
 
     def test_scan_comments_zero_string(self):
         import os
-        result = "0".strip().lower() not in ("false", "0", "no")
-        assert result is False
+        import importlib
+        import reddit_scam_sentry.config as cfg_mod
+        env = {
+            "REDDIT_CLIENT_ID": "x", "REDDIT_CLIENT_SECRET": "x",
+            "REDDIT_USERNAME": "x", "REDDIT_PASSWORD": "x",
+            "SCAN_COMMENTS": "0",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            importlib.reload(cfg_mod)
+            assert cfg_mod.SCAN_COMMENTS is False
 
     def test_scan_comments_no_string(self):
-        result = "no".strip().lower() not in ("false", "0", "no")
-        assert result is False
+        import os
+        import importlib
+        import reddit_scam_sentry.config as cfg_mod
+        env = {
+            "REDDIT_CLIENT_ID": "x", "REDDIT_CLIENT_SECRET": "x",
+            "REDDIT_USERNAME": "x", "REDDIT_PASSWORD": "x",
+            "SCAN_COMMENTS": "no",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            importlib.reload(cfg_mod)
+            assert cfg_mod.SCAN_COMMENTS is False
 
     def test_scan_comments_true_string(self):
-        result = "true".strip().lower() not in ("false", "0", "no")
-        assert result is True
+        import os
+        import importlib
+        import reddit_scam_sentry.config as cfg_mod
+        env = {
+            "REDDIT_CLIENT_ID": "x", "REDDIT_CLIENT_SECRET": "x",
+            "REDDIT_USERNAME": "x", "REDDIT_PASSWORD": "x",
+            "SCAN_COMMENTS": "true",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            importlib.reload(cfg_mod)
+            assert cfg_mod.SCAN_COMMENTS is True
+
+
+class TestMainWiring:
+    """Verify main() creates the right set of asyncio tasks based on SCAN_COMMENTS."""
+
+    def _make_db_context(self):
+        """Returns a fake aiosqlite context manager yielding a mock DB."""
+        db = AsyncMock()
+        db.execute = AsyncMock()
+        db.commit = AsyncMock()
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=db)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        return cm
+
+    def _collecting_create_task(self, captured: list):
+        """Return a create_task side-effect that closes coroutines to avoid warnings."""
+        def _create_task(coro):
+            captured.append(getattr(coro, "__qualname__", type(coro).__name__))
+            coro.close()
+            return AsyncMock()
+        return _create_task
+
+    async def test_scan_comments_enabled_creates_both_task_types(self):
+        import reddit_scam_sentry.main as main_mod
+        import reddit_scam_sentry.config as cfg_mod
+
+        captured: list = []
+        db_cm = self._make_db_context()
+
+        with patch.object(cfg_mod, "SCAN_COMMENTS", True), \
+             patch.object(cfg_mod, "SUBREDDITS", ["testA"]), \
+             patch("aiosqlite.connect", return_value=db_cm), \
+             patch("reddit_scam_sentry.main.init_db", new_callable=AsyncMock), \
+             patch("reddit_scam_sentry.main.make_reddit") as mock_reddit, \
+             patch("asyncio.create_task", side_effect=self._collecting_create_task(captured)), \
+             patch("asyncio.gather", new_callable=AsyncMock):
+            reddit_inst = AsyncMock()
+            reddit_inst.close = AsyncMock()
+            mock_reddit.return_value = reddit_inst
+
+            await main_mod.main()
+
+        assert len(captured) == 2
+
+    async def test_scan_comments_disabled_creates_only_post_tasks(self):
+        import reddit_scam_sentry.main as main_mod
+        import reddit_scam_sentry.config as cfg_mod
+
+        captured: list = []
+        db_cm = self._make_db_context()
+
+        with patch.object(cfg_mod, "SCAN_COMMENTS", False), \
+             patch.object(cfg_mod, "SUBREDDITS", ["testA"]), \
+             patch("aiosqlite.connect", return_value=db_cm), \
+             patch("reddit_scam_sentry.main.init_db", new_callable=AsyncMock), \
+             patch("reddit_scam_sentry.main.make_reddit") as mock_reddit, \
+             patch("asyncio.create_task", side_effect=self._collecting_create_task(captured)), \
+             patch("asyncio.gather", new_callable=AsyncMock):
+            reddit_inst = AsyncMock()
+            reddit_inst.close = AsyncMock()
+            mock_reddit.return_value = reddit_inst
+
+            await main_mod.main()
+
+        assert len(captured) == 1
+
+    async def test_two_subreddits_with_comments_creates_four_tasks(self):
+        import reddit_scam_sentry.main as main_mod
+        import reddit_scam_sentry.config as cfg_mod
+
+        captured: list = []
+        db_cm = self._make_db_context()
+
+        with patch.object(cfg_mod, "SCAN_COMMENTS", True), \
+             patch.object(cfg_mod, "SUBREDDITS", ["sub1", "sub2"]), \
+             patch("aiosqlite.connect", return_value=db_cm), \
+             patch("reddit_scam_sentry.main.init_db", new_callable=AsyncMock), \
+             patch("reddit_scam_sentry.main.make_reddit") as mock_reddit, \
+             patch("asyncio.create_task", side_effect=self._collecting_create_task(captured)), \
+             patch("asyncio.gather", new_callable=AsyncMock):
+            reddit_inst = AsyncMock()
+            reddit_inst.close = AsyncMock()
+            mock_reddit.return_value = reddit_inst
+
+            await main_mod.main()
+
+        assert len(captured) == 4
