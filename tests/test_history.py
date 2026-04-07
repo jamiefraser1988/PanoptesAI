@@ -206,6 +206,38 @@ class TestFetchRecentPosts:
         assert result == []
 
     @pytest.mark.asyncio
+    async def test_combined_limit_respected(self):
+        """With limit=4, should fetch 2 submissions + 2 comments = 4 total max."""
+        mock_submissions = [MagicMock() for _ in range(2)]
+        for i, s in enumerate(mock_submissions):
+            s.title = f"Post {i}"
+            s.selftext = ""
+            s.subreddit = MagicMock()
+            s.subreddit.display_name = "sub"
+            s.created_utc = float(i)
+
+        mock_comments_list = [MagicMock() for _ in range(2)]
+        for i, c in enumerate(mock_comments_list):
+            c.body = f"Comment {i}"
+            c.subreddit = MagicMock()
+            c.subreddit.display_name = "sub"
+            c.created_utc = float(i)
+
+        mock_redditor = MagicMock()
+        mock_redditor.submissions = MagicMock()
+        mock_redditor.submissions.new = MagicMock(return_value=_async_iter(mock_submissions))
+        mock_redditor.comments = MagicMock()
+        mock_redditor.comments.new = MagicMock(return_value=_async_iter(mock_comments_list))
+
+        mock_reddit = AsyncMock()
+        mock_reddit.redditor = AsyncMock(return_value=mock_redditor)
+
+        result = await fetch_recent_posts(mock_reddit, "testuser", limit=4)
+        assert len(result) == 4
+        mock_redditor.submissions.new.assert_called_once_with(limit=2)
+        mock_redditor.comments.new.assert_called_once_with(limit=2)
+
+    @pytest.mark.asyncio
     async def test_all_required_keys_present(self):
         mock_submission = MagicMock()
         mock_submission.title = "T"

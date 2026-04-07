@@ -37,16 +37,21 @@ async def fetch_recent_posts(
     username: str,
     limit: int = 10,
 ) -> list[dict[str, Any]]:
-    """Fetch the author's last ``limit`` submissions and comments.
+    """Fetch the author's last ``limit`` items (combined posts + comments).
+
+    The ``limit`` is split evenly: up to ``limit // 2`` submissions and
+    ``limit - limit // 2`` comments, giving a combined cap of ``limit`` items.
 
     Returns a list of dicts with keys: ``kind``, ``subreddit``, ``title``,
     ``body``, ``created_utc``.  Returns an empty list on any API error so the
     caller can always treat the result as a plain list.
     """
     results: list[dict[str, Any]] = []
+    post_limit = max(1, limit // 2)
+    comment_limit = max(1, limit - post_limit)
     try:
         redditor = await reddit.redditor(username)
-        async for submission in redditor.submissions.new(limit=limit):
+        async for submission in redditor.submissions.new(limit=post_limit):
             results.append(
                 {
                     "kind": "post",
@@ -56,7 +61,7 @@ async def fetch_recent_posts(
                     "created_utc": getattr(submission, "created_utc", 0.0),
                 }
             )
-        async for comment in redditor.comments.new(limit=limit):
+        async for comment in redditor.comments.new(limit=comment_limit):
             results.append(
                 {
                     "kind": "comment",

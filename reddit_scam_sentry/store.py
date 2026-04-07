@@ -22,6 +22,7 @@ async def init_db(db: aiosqlite.Connection) -> None:
             subreddit   TEXT NOT NULL,
             author      TEXT NOT NULL,
             title       TEXT NOT NULL,
+            body        TEXT NOT NULL DEFAULT '',
             score       INTEGER NOT NULL,
             reasons     TEXT NOT NULL,
             flagged     INTEGER NOT NULL,
@@ -29,6 +30,11 @@ async def init_db(db: aiosqlite.Connection) -> None:
         )
         """
     )
+    try:
+        await db.execute("ALTER TABLE decisions ADD COLUMN body TEXT NOT NULL DEFAULT ''")
+        await db.commit()
+    except Exception:
+        pass
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS comment_decisions (
@@ -83,6 +89,7 @@ async def save_decision(
     subreddit: str,
     author: str,
     title: str,
+    body: str = "",
     score: int,
     reasons: list[str],
     flagged: bool,
@@ -91,14 +98,15 @@ async def save_decision(
     await db.execute(
         """
         INSERT OR IGNORE INTO decisions
-            (post_id, subreddit, author, title, score, reasons, flagged, decided_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (post_id, subreddit, author, title, body, score, reasons, flagged, decided_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             post_id,
             subreddit,
             author,
             title,
+            body,
             score,
             json.dumps(reasons),
             int(flagged),
@@ -114,13 +122,15 @@ async def get_recent_flagged_bodies(
 ) -> list[str]:
     """Return the body/title text of the most recent flagged decisions.
 
-    Queries both the ``decisions`` (title) and ``comment_decisions`` (body_snippet)
-    tables so the similarity engine has a broad picture of recent scam content.
+    Queries both the ``decisions`` (body preferred, falls back to title) and
+    ``comment_decisions`` (body_snippet) tables so the similarity engine has a
+    broad picture of recent scam content.
     """
     rows: list[str] = []
     async with db.execute(
         """
-        SELECT title FROM decisions
+        SELECT COALESCE(NULLIF(TRIM(body), ''), title) AS text
+        FROM decisions
         WHERE flagged = 1
         ORDER BY decided_at DESC
         LIMIT ?

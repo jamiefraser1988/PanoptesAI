@@ -264,6 +264,37 @@ class TestGetRecentFlaggedBodies:
         assert "Buy crypto now dm me telegram" in bodies
         assert "My cat photo" not in bodies
 
+    async def test_uses_body_over_title_when_available(self, db):
+        await save_decision(
+            db,
+            post_id="bodypost",
+            subreddit="test",
+            author="spammer",
+            title="Short title",
+            body="This is the full post body with scam content",
+            score=85,
+            reasons=["Scam keywords"],
+            flagged=True,
+        )
+        bodies = await get_recent_flagged_bodies(db)
+        assert "This is the full post body with scam content" in bodies
+        assert "Short title" not in bodies
+
+    async def test_falls_back_to_title_when_body_empty(self, db):
+        await save_decision(
+            db,
+            post_id="titleonly",
+            subreddit="test",
+            author="spammer",
+            title="Title only scam post",
+            body="",
+            score=85,
+            reasons=["Scam keywords"],
+            flagged=True,
+        )
+        bodies = await get_recent_flagged_bodies(db)
+        assert "Title only scam post" in bodies
+
     async def test_returns_flagged_comment_bodies(self, db):
         await save_comment_decision(
             db,
