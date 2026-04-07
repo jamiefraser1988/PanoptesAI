@@ -7,7 +7,6 @@ services:
     env_file: .env
     volumes:
       - ./sentry.db:/app/sentry.db
-    command: scam-sentry
 
   dashboard:
     build: .
@@ -15,7 +14,7 @@ services:
     env_file: .env
     volumes:
       - ./sentry.db:/app/sentry.db
-    command: python -m dashboard.main
+    command: ["python", "-m", "dashboard.main"]
     ports:
       - "8000:8000"
     depends_on:

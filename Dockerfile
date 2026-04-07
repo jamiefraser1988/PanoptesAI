@@ -18,4 +18,4 @@ RUN useradd --create-home --shell /bin/bash sentry \
 
 USER sentry
 
-ENTRYPOINT ["scam-sentry"]
+CMD ["scam-sentry"]
