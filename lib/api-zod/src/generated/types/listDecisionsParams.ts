@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ListDecisionsContentType } from "./listDecisionsContentType";
+import type { ListDecisionsSortBy } from "./listDecisionsSortBy";
 
 export type ListDecisionsParams = {
   subreddit?: string;
@@ -13,4 +14,5 @@ export type ListDecisionsParams = {
   content_type?: ListDecisionsContentType;
   page?: number;
   limit?: number;
+  sort_by?: ListDecisionsSortBy;
 };

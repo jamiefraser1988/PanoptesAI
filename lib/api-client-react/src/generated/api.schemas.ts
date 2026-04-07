@@ -101,6 +101,7 @@ export type ListDecisionsParams = {
   content_type?: ListDecisionsContentType;
   page?: number;
   limit?: number;
+  sort_by?: ListDecisionsSortBy;
 };
 
 export type ListDecisionsContentType =
@@ -110,6 +111,14 @@ export const ListDecisionsContentType = {
   posts: "posts",
   comments: "comments",
   all: "all",
+} as const;
+
+export type ListDecisionsSortBy =
+  (typeof ListDecisionsSortBy)[keyof typeof ListDecisionsSortBy];
+
+export const ListDecisionsSortBy = {
+  score: "score",
+  date: "date",
 } as const;
 
 export type GetStatsParams = {

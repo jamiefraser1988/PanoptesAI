@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useGetConfig, useSaveConfig, useTestWebhook, getGetConfigQueryKey } from "@workspace/api-client-react";
+import { useGetConfig, useSaveConfig, useTestWebhook, getGetConfigQueryKey, useListDecisions } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,13 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Save, Plus, X, Webhook, Power, RotateCcw } from "lucide-react";
+import { Save, Plus, X, Webhook, Power, RotateCcw, Flag } from "lucide-react";
+
+function getScoreColor(score: number) {
+  if (score >= 70) return "text-red-500 bg-red-500/10 border-red-500/20";
+  if (score >= 40) return "text-amber-500 bg-amber-500/10 border-amber-500/20";
+  return "text-green-500 bg-green-500/10 border-green-500/20";
+}
 
 export default function Config() {
   const queryClient = useQueryClient();
   const { data: config, isLoading } = useGetConfig({ query: { queryKey: getGetConfigQueryKey() } });
   const saveConfig = useSaveConfig();
   const testWebhook = useTestWebhook();
+  const { data: recentFlagged, isLoading: flaggedLoading } = useListDecisions({ limit: 3, sort_by: "date", page: 1 });
 
   const [threshold, setThreshold] = useState<number[]>([70]);
   const [subreddits, setSubreddits] = useState<string[]>([]);
@@ -226,6 +233,38 @@ export default function Config() {
                 Soft Reset
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Flag className="w-4 h-4 text-primary" />
+              <CardTitle>Latest Flagged</CardTitle>
+            </div>
+            <CardDescription>The 3 most recently flagged items across all monitored subreddits.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {flaggedLoading ? (
+              <div className="py-4 text-center text-sm text-muted-foreground">Loading...</div>
+            ) : !recentFlagged?.items?.length ? (
+              <div className="py-4 text-center text-sm text-muted-foreground">No flagged items found.</div>
+            ) : (
+              <div className="divide-y divide-border">
+                {recentFlagged.items.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 py-3" data-testid={`latest-flagged-${item.id}`}>
+                    <Badge variant="outline" className={`font-mono text-xs shrink-0 ${getScoreColor(item.score)}`}>
+                      {item.score} RISK
+                    </Badge>
+                    <span className="text-xs text-muted-foreground shrink-0">r/{item.subreddit}</span>
+                    <span className="text-sm text-foreground truncate flex-1">{item.title}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {new Date(item.decided_at * 1000).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

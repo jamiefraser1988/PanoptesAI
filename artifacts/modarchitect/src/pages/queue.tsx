@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, ExternalLink, Search, Filter } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, Search, Filter, ArrowDownUp } from "lucide-react";
 import { SiReddit } from "react-icons/si";
 
 type ContentType = "all" | "posts" | "comments";
+type SortBy = "score" | "date";
 
 interface DecisionItem {
   id: number;
@@ -28,6 +29,7 @@ export default function Queue() {
   const [subreddit, setSubreddit] = useState("");
   const [minScore, setMinScore] = useState<number[]>([0]);
   const [contentType, setContentType] = useState<ContentType>("all");
+  const [sortBy, setSortBy] = useState<SortBy>("score");
   const [page, setPage] = useState(1);
   const [accumulatedItems, setAccumulatedItems] = useState<DecisionItem[]>([]);
   const [localFeedback, setLocalFeedback] = useState<Record<string, string>>({});
@@ -41,6 +43,7 @@ export default function Queue() {
     content_type: contentType === "all" ? ("all" as const) : contentType,
     page,
     limit: 20,
+    sort_by: sortBy as "score" | "date",
   };
 
   const { data, isLoading } = useListDecisions(queryParams, {
@@ -149,6 +152,25 @@ export default function Queue() {
                 data-testid={`toggle-type-${type}`}
               >
                 {type === "all" ? "All" : type === "posts" ? "Posts" : "Comments"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="w-full sm:w-auto space-y-2">
+          <label className="text-xs font-medium text-muted-foreground flex items-center gap-2"><ArrowDownUp className="w-3 h-3" /> Sort</label>
+          <div className="flex h-9 rounded-md border border-border overflow-hidden">
+            {(["score", "date"] as SortBy[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => { setSortBy(s); resetFilters(); }}
+                className={`px-3 text-xs capitalize transition-colors ${
+                  sortBy === s
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:text-foreground hover:bg-accent/10"
+                }`}
+                data-testid={`toggle-sort-${s}`}
+              >
+                {s === "score" ? "Highest Risk" : "Most Recent"}
               </button>
             ))}
           </div>

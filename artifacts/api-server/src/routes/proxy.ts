@@ -144,7 +144,7 @@ router.get("/decisions", async (req, res): Promise<void> => {
   }
 
   try {
-    const { subreddit, min_score, content_type, page, limit } = params.data;
+    const { subreddit, min_score, content_type, page, limit, sort_by } = params.data;
     const per_page = limit ?? 20;
     const current_page = page ?? 1;
     const offset = (current_page - 1) * per_page;
@@ -191,11 +191,15 @@ router.get("/decisions", async (req, res): Promise<void> => {
       items = items.filter((d) => d.score >= min_score);
     }
 
-    items.sort((a, b) => {
-      const aTs = (a.decided_at as number) ?? 0;
-      const bTs = (b.decided_at as number) ?? 0;
-      return bTs - aTs;
-    });
+    if (sort_by === "date") {
+      items.sort((a, b) => {
+        const aTs = (a.decided_at as number) ?? 0;
+        const bTs = (b.decided_at as number) ?? 0;
+        return bTs - aTs;
+      });
+    } else {
+      items.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    }
 
     const pageItems = items.slice(0, per_page);
     const total = hasMore ? (current_page * per_page) + 1 : offset + items.length;

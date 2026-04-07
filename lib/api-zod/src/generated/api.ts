@@ -21,6 +21,7 @@ export const HealthCheckResponse = zod.object({
 export const listDecisionsQueryContentTypeDefault = `all`;
 export const listDecisionsQueryPageDefault = 1;
 export const listDecisionsQueryLimitDefault = 20;
+export const listDecisionsQuerySortByDefault = `score`;
 
 export const ListDecisionsQueryParams = zod.object({
   subreddit: zod.coerce.string().optional(),
@@ -30,6 +31,7 @@ export const ListDecisionsQueryParams = zod.object({
     .default(listDecisionsQueryContentTypeDefault),
   page: zod.coerce.number().default(listDecisionsQueryPageDefault),
   limit: zod.coerce.number().default(listDecisionsQueryLimitDefault),
+  sort_by: zod.enum(["score", "date"]).default(listDecisionsQuerySortByDefault),
 });
 
 export const ListDecisionsResponse = zod.object({
