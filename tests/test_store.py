@@ -67,28 +67,32 @@ class TestGetCachedAuthor:
 
     async def test_returns_none_when_expired(self, db):
         data = {"name": "olduser", "link_karma": 10}
-        past_time = time.time() - (7 * 3600)
+        fixed_now = 1_700_000_000.0
+        cached_at = fixed_now - (7 * 3600)
         async with db.execute(
             "INSERT INTO user_cache (username, data_json, cached_at) VALUES (?, ?, ?)",
-            ("olduser", json.dumps(data), past_time),
+            ("olduser", json.dumps(data), cached_at),
         ):
             pass
         await db.commit()
 
-        result = await get_cached_author(db, "olduser")
+        with patch("reddit_scam_sentry.store.time.time", return_value=fixed_now):
+            result = await get_cached_author(db, "olduser")
         assert result is None
 
     async def test_returns_data_just_within_ttl(self, db):
         data = {"name": "freshuser", "link_karma": 50}
-        just_fresh = time.time() - (6 * 3600 - 60)
+        fixed_now = 1_700_000_000.0
+        cached_at = fixed_now - (6 * 3600 - 60)
         async with db.execute(
             "INSERT INTO user_cache (username, data_json, cached_at) VALUES (?, ?, ?)",
-            ("freshuser", json.dumps(data), just_fresh),
+            ("freshuser", json.dumps(data), cached_at),
         ):
             pass
         await db.commit()
 
-        result = await get_cached_author(db, "freshuser")
+        with patch("reddit_scam_sentry.store.time.time", return_value=fixed_now):
+            result = await get_cached_author(db, "freshuser")
         assert result is not None
         assert result["link_karma"] == 50
 
