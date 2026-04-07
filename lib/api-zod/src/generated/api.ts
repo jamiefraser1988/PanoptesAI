@@ -14,3 +14,156 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List flagged decisions
+ */
+export const listDecisionsQueryContentTypeDefault = `all`;
+export const listDecisionsQueryPageDefault = 1;
+export const listDecisionsQueryLimitDefault = 20;
+
+export const ListDecisionsQueryParams = zod.object({
+  subreddit: zod.coerce.string().optional(),
+  min_score: zod.coerce.number().optional(),
+  content_type: zod
+    .enum(["posts", "comments", "all"])
+    .default(listDecisionsQueryContentTypeDefault),
+  page: zod.coerce.number().default(listDecisionsQueryPageDefault),
+  limit: zod.coerce.number().default(listDecisionsQueryLimitDefault),
+});
+
+export const ListDecisionsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      post_id: zod.string(),
+      subreddit: zod.string(),
+      author: zod.string(),
+      title: zod.string(),
+      score: zod.number(),
+      reasons: zod.array(zod.string()),
+      flagged: zod.boolean(),
+      decided_at: zod.number(),
+      feedback: zod.string().nullish(),
+      content_type: zod.enum(["post", "comment"]).optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  total_pages: zod.number(),
+});
+
+/**
+ * @summary Submit feedback on a decision
+ */
+export const SubmitFeedbackParams = zod.object({
+  postId: zod.coerce.string(),
+});
+
+export const SubmitFeedbackBody = zod.object({
+  verdict: zod.enum(["true_positive", "false_positive", "unclear"]),
+});
+
+export const SubmitFeedbackResponse = zod.object({
+  id: zod.number(),
+  post_id: zod.string(),
+  subreddit: zod.string(),
+  author: zod.string(),
+  title: zod.string(),
+  score: zod.number(),
+  reasons: zod.array(zod.string()),
+  flagged: zod.boolean(),
+  decided_at: zod.number(),
+  feedback: zod.string().nullish(),
+  content_type: zod.enum(["post", "comment"]).optional(),
+});
+
+/**
+ * @summary Get aggregate analytics
+ */
+export const getStatsQueryTimeframeDefault = `7d`;
+
+export const GetStatsQueryParams = zod.object({
+  timeframe: zod
+    .enum(["24h", "7d", "30d"])
+    .default(getStatsQueryTimeframeDefault),
+});
+
+export const GetStatsResponse = zod.object({
+  total_posts: zod.number(),
+  flagged_posts: zod.number(),
+  flag_rate_pct: zod.number(),
+  mean_score: zod.number(),
+  false_positive_count: zod.number(),
+  pending_review_count: zod.number(),
+  by_subreddit: zod.array(
+    zod.object({
+      subreddit: zod.string(),
+      total: zod.number(),
+      flagged: zod.number(),
+    }),
+  ),
+  top_reasons: zod.array(
+    zod.object({
+      reason: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  daily_activity: zod.array(
+    zod.object({
+      date: zod.string(),
+      subreddit: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get bot configuration
+ */
+export const getConfigResponseScoreThresholdMin = 0;
+export const getConfigResponseScoreThresholdMax = 100;
+
+export const GetConfigResponse = zod.object({
+  score_threshold: zod
+    .number()
+    .min(getConfigResponseScoreThresholdMin)
+    .max(getConfigResponseScoreThresholdMax),
+  watched_subreddits: zod.array(zod.string()),
+  webhook_url: zod.string().nullish(),
+});
+
+/**
+ * @summary Save bot configuration
+ */
+export const saveConfigBodyScoreThresholdMin = 0;
+export const saveConfigBodyScoreThresholdMax = 100;
+
+export const SaveConfigBody = zod.object({
+  score_threshold: zod
+    .number()
+    .min(saveConfigBodyScoreThresholdMin)
+    .max(saveConfigBodyScoreThresholdMax),
+  watched_subreddits: zod.array(zod.string()),
+  webhook_url: zod.string().nullish(),
+});
+
+export const saveConfigResponseScoreThresholdMin = 0;
+export const saveConfigResponseScoreThresholdMax = 100;
+
+export const SaveConfigResponse = zod.object({
+  score_threshold: zod
+    .number()
+    .min(saveConfigResponseScoreThresholdMin)
+    .max(saveConfigResponseScoreThresholdMax),
+  watched_subreddits: zod.array(zod.string()),
+  webhook_url: zod.string().nullish(),
+});
+
+/**
+ * @summary Test webhook connection
+ */
+export const TestWebhookResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+});

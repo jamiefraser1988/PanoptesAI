@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: decisions
+    description: Flagged content decisions
+  - name: stats
+    description: Analytics and statistics
+  - name: config
+    description: Bot configuration
 paths:
   /healthz:
     get:
@@ -24,6 +30,133 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /decisions:
+    get:
+      operationId: listDecisions
+      tags: [decisions]
+      summary: List flagged decisions
+      parameters:
+        - name: subreddit
+          in: query
+          schema:
+            type: string
+        - name: min_score
+          in: query
+          schema:
+            type: integer
+        - name: content_type
+          in: query
+          schema:
+            type: string
+            enum: [posts, comments, all]
+            default: all
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of decisions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DecisionsPage"
+
+  /decisions/{postId}/feedback:
+    post:
+      operationId: submitFeedback
+      tags: [decisions]
+      summary: Submit feedback on a decision
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackRequest"
+      responses:
+        "200":
+          description: Updated decision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Decision"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Get aggregate analytics
+      parameters:
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [24h, 7d, 30d]
+            default: 7d
+      responses:
+        "200":
+          description: Aggregate stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsOut"
+
+  /config:
+    get:
+      operationId: getConfig
+      tags: [config]
+      summary: Get bot configuration
+      responses:
+        "200":
+          description: Current configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotConfig"
+    post:
+      operationId: saveConfig
+      tags: [config]
+      summary: Save bot configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotConfig"
+      responses:
+        "200":
+          description: Updated configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotConfig"
+
+  /config/test-webhook:
+    post:
+      operationId: testWebhook
+      tags: [config]
+      summary: Test webhook connection
+      responses:
+        "200":
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookTestResult"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +167,176 @@ components:
       required:
         - status
 
+    Decision:
+      type: object
+      properties:
+        id:
+          type: integer
+        post_id:
+          type: string
+        subreddit:
+          type: string
+        author:
+          type: string
+        title:
+          type: string
+        score:
+          type: integer
+        reasons:
+          type: array
+          items:
+            type: string
+        flagged:
+          type: boolean
+        decided_at:
+          type: number
+        feedback:
+          type: string
+          nullable: true
+        content_type:
+          type: string
+          enum: [post, comment]
+      required:
+        - id
+        - post_id
+        - subreddit
+        - author
+        - title
+        - score
+        - reasons
+        - flagged
+        - decided_at
+
+    DecisionsPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Decision"
+        total:
+          type: integer
+        page:
+          type: integer
+        total_pages:
+          type: integer
+      required:
+        - items
+        - total
+        - page
+        - total_pages
+
+    FeedbackRequest:
+      type: object
+      properties:
+        verdict:
+          type: string
+          enum: [true_positive, false_positive, unclear]
+      required:
+        - verdict
+
+    SubredditStat:
+      type: object
+      properties:
+        subreddit:
+          type: string
+        total:
+          type: integer
+        flagged:
+          type: integer
+      required:
+        - subreddit
+        - total
+        - flagged
+
+    ReasonStat:
+      type: object
+      properties:
+        reason:
+          type: string
+        count:
+          type: integer
+      required:
+        - reason
+        - count
+
+    DailyActivity:
+      type: object
+      properties:
+        date:
+          type: string
+        subreddit:
+          type: string
+        count:
+          type: integer
+      required:
+        - date
+        - subreddit
+        - count
+
+    StatsOut:
+      type: object
+      properties:
+        total_posts:
+          type: integer
+        flagged_posts:
+          type: integer
+        flag_rate_pct:
+          type: number
+        mean_score:
+          type: number
+        false_positive_count:
+          type: integer
+        pending_review_count:
+          type: integer
+        by_subreddit:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubredditStat"
+        top_reasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReasonStat"
+        daily_activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyActivity"
+      required:
+        - total_posts
+        - flagged_posts
+        - flag_rate_pct
+        - mean_score
+        - false_positive_count
+        - pending_review_count
+        - by_subreddit
+        - top_reasons
+        - daily_activity
+
+    BotConfig:
+      type: object
+      properties:
+        score_threshold:
+          type: integer
+          minimum: 0
+          maximum: 100
+        watched_subreddits:
+          type: array
+          items:
+            type: string
+        webhook_url:
+          type: string
+          nullable: true
+      required:
+        - score_threshold
+        - watched_subreddits
+
+    WebhookTestResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message

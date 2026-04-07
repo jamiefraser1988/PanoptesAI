@@ -6,4 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./botConfig";
+export * from "./dailyActivity";
+export * from "./decision";
+export * from "./decisionContentType";
+export * from "./decisionsPage";
+export * from "./feedbackRequest";
+export * from "./feedbackRequestVerdict";
+export * from "./getStatsParams";
+export * from "./getStatsTimeframe";
 export * from "./healthStatus";
+export * from "./listDecisionsContentType";
+export * from "./listDecisionsParams";
+export * from "./reasonStat";
+export * from "./statsOut";
+export * from "./subredditStat";
+export * from "./webhookTestResult";

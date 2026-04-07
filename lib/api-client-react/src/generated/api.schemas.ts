@@ -8,3 +8,119 @@
 export interface HealthStatus {
   status: string;
 }
+
+export type DecisionContentType =
+  (typeof DecisionContentType)[keyof typeof DecisionContentType];
+
+export const DecisionContentType = {
+  post: "post",
+  comment: "comment",
+} as const;
+
+export interface Decision {
+  id: number;
+  post_id: string;
+  subreddit: string;
+  author: string;
+  title: string;
+  score: number;
+  reasons: string[];
+  flagged: boolean;
+  decided_at: number;
+  feedback?: string | null;
+  content_type?: DecisionContentType;
+}
+
+export interface DecisionsPage {
+  items: Decision[];
+  total: number;
+  page: number;
+  total_pages: number;
+}
+
+export type FeedbackRequestVerdict =
+  (typeof FeedbackRequestVerdict)[keyof typeof FeedbackRequestVerdict];
+
+export const FeedbackRequestVerdict = {
+  true_positive: "true_positive",
+  false_positive: "false_positive",
+  unclear: "unclear",
+} as const;
+
+export interface FeedbackRequest {
+  verdict: FeedbackRequestVerdict;
+}
+
+export interface SubredditStat {
+  subreddit: string;
+  total: number;
+  flagged: number;
+}
+
+export interface ReasonStat {
+  reason: string;
+  count: number;
+}
+
+export interface DailyActivity {
+  date: string;
+  subreddit: string;
+  count: number;
+}
+
+export interface StatsOut {
+  total_posts: number;
+  flagged_posts: number;
+  flag_rate_pct: number;
+  mean_score: number;
+  false_positive_count: number;
+  pending_review_count: number;
+  by_subreddit: SubredditStat[];
+  top_reasons: ReasonStat[];
+  daily_activity: DailyActivity[];
+}
+
+export interface BotConfig {
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  score_threshold: number;
+  watched_subreddits: string[];
+  webhook_url?: string | null;
+}
+
+export interface WebhookTestResult {
+  success: boolean;
+  message: string;
+}
+
+export type ListDecisionsParams = {
+  subreddit?: string;
+  min_score?: number;
+  content_type?: ListDecisionsContentType;
+  page?: number;
+  limit?: number;
+};
+
+export type ListDecisionsContentType =
+  (typeof ListDecisionsContentType)[keyof typeof ListDecisionsContentType];
+
+export const ListDecisionsContentType = {
+  posts: "posts",
+  comments: "comments",
+  all: "all",
+} as const;
+
+export type GetStatsParams = {
+  timeframe?: GetStatsTimeframe;
+};
+
+export type GetStatsTimeframe =
+  (typeof GetStatsTimeframe)[keyof typeof GetStatsTimeframe];
+
+export const GetStatsTimeframe = {
+  "24h": "24h",
+  "7d": "7d",
+  "30d": "30d",
+} as const;
