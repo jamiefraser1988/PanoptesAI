@@ -108,6 +108,47 @@ async def save_decision(
     await db.commit()
 
 
+async def get_recent_flagged_bodies(
+    db: aiosqlite.Connection,
+    limit: int = 50,
+) -> list[str]:
+    """Return the body/title text of the most recent flagged decisions.
+
+    Queries both the ``decisions`` (title) and ``comment_decisions`` (body_snippet)
+    tables so the similarity engine has a broad picture of recent scam content.
+    """
+    rows: list[str] = []
+    async with db.execute(
+        """
+        SELECT title FROM decisions
+        WHERE flagged = 1
+        ORDER BY decided_at DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ) as cursor:
+        async for row in cursor:
+            if row[0]:
+                rows.append(row[0])
+
+    remaining = max(0, limit - len(rows))
+    if remaining > 0:
+        async with db.execute(
+            """
+            SELECT body_snippet FROM comment_decisions
+            WHERE flagged = 1
+            ORDER BY decided_at DESC
+            LIMIT ?
+            """,
+            (remaining,),
+        ) as cursor:
+            async for row in cursor:
+                if row[0]:
+                    rows.append(row[0])
+
+    return rows
+
+
 async def save_comment_decision(
     db: aiosqlite.Connection,
     *,

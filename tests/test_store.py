@@ -16,6 +16,8 @@ from reddit_scam_sentry.store import (
     get_cached_author,
     set_cached_author,
     save_decision,
+    save_comment_decision,
+    get_recent_flagged_bodies,
 )
 
 
@@ -229,3 +231,123 @@ class TestSaveDecision:
             row = await cur.fetchone()
 
         assert row[0] == 5
+
+
+class TestGetRecentFlaggedBodies:
+    async def test_returns_empty_when_no_flagged_decisions(self, db):
+        bodies = await get_recent_flagged_bodies(db)
+        assert bodies == []
+
+    async def test_returns_only_flagged_post_titles(self, db):
+        await save_decision(
+            db,
+            post_id="flagged1",
+            subreddit="test",
+            author="spammer",
+            title="Buy crypto now dm me telegram",
+            score=85,
+            reasons=["Scam keywords"],
+            flagged=True,
+        )
+        await save_decision(
+            db,
+            post_id="clean1",
+            subreddit="test",
+            author="cleanuser",
+            title="My cat photo",
+            score=5,
+            reasons=[],
+            flagged=False,
+        )
+
+        bodies = await get_recent_flagged_bodies(db)
+        assert "Buy crypto now dm me telegram" in bodies
+        assert "My cat photo" not in bodies
+
+    async def test_returns_flagged_comment_bodies(self, db):
+        await save_comment_decision(
+            db,
+            comment_id="cmt1",
+            post_id="post1",
+            subreddit="test",
+            author="spammer",
+            body_snippet="DM me for easy crypto profits",
+            score=80,
+            reasons=["Scam keywords"],
+            flagged=True,
+        )
+
+        bodies = await get_recent_flagged_bodies(db)
+        assert "DM me for easy crypto profits" in bodies
+
+    async def test_combines_posts_and_comments_up_to_limit(self, db):
+        for i in range(3):
+            await save_decision(
+                db,
+                post_id=f"fp{i}",
+                subreddit="test",
+                author="sp",
+                title=f"Flagged post {i}",
+                score=80,
+                reasons=[],
+                flagged=True,
+            )
+        for i in range(3):
+            await save_comment_decision(
+                db,
+                comment_id=f"fc{i}",
+                post_id=f"p{i}",
+                subreddit="test",
+                author="sp",
+                body_snippet=f"Flagged comment {i}",
+                score=80,
+                reasons=[],
+                flagged=True,
+            )
+
+        bodies = await get_recent_flagged_bodies(db, limit=6)
+        assert len(bodies) == 6
+
+    async def test_respects_limit(self, db):
+        for i in range(10):
+            await save_decision(
+                db,
+                post_id=f"fp{i}",
+                subreddit="test",
+                author="sp",
+                title=f"Flagged post {i}",
+                score=80,
+                reasons=[],
+                flagged=True,
+            )
+
+        bodies = await get_recent_flagged_bodies(db, limit=5)
+        assert len(bodies) == 5
+
+    async def test_posts_fill_limit_before_comments(self, db):
+        for i in range(3):
+            await save_decision(
+                db,
+                post_id=f"fp{i}",
+                subreddit="test",
+                author="sp",
+                title=f"Post {i}",
+                score=80,
+                reasons=[],
+                flagged=True,
+            )
+            await save_comment_decision(
+                db,
+                comment_id=f"fc{i}",
+                post_id=f"p{i}",
+                subreddit="test",
+                author="sp",
+                body_snippet=f"Comment {i}",
+                score=80,
+                reasons=[],
+                flagged=True,
+            )
+
+        bodies = await get_recent_flagged_bodies(db, limit=3)
+        assert len(bodies) == 3
+        assert all(b.startswith("Post") for b in bodies)

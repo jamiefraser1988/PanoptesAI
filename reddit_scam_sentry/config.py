@@ -42,3 +42,6 @@ SCAN_COMMENTS: bool = _optional("SCAN_COMMENTS", "true").strip().lower() not in 
 WEBHOOK_URL: str = _optional("WEBHOOK_URL", "")
 WEBHOOK_TYPE: str = _optional("WEBHOOK_TYPE", "generic").strip().lower()
 NOTIFY_THRESHOLD: int = int(_optional("NOTIFY_THRESHOLD", str(RISK_THRESHOLD)))
+
+HISTORY_POSTS_LIMIT: int = int(_optional("HISTORY_POSTS_LIMIT", "10"))
+SIMILARITY_THRESHOLD: float = float(_optional("SIMILARITY_THRESHOLD", "0.6"))

@@ -17,9 +17,16 @@ from reddit_scam_sentry.logging_setup import setup_logging
 from reddit_scam_sentry.reddit_client import make_reddit
 from reddit_scam_sentry.scorer import compute_score
 from reddit_scam_sentry.actions import apply_flair
-from reddit_scam_sentry.store import init_db, get_cached_author, set_cached_author, save_decision
+from reddit_scam_sentry.store import (
+    init_db,
+    get_cached_author,
+    set_cached_author,
+    save_decision,
+    get_recent_flagged_bodies,
+)
 from reddit_scam_sentry.utils import exponential_backoff, truncate
 from reddit_scam_sentry.comment_handler import stream_comments
+from reddit_scam_sentry.history import fetch_recent_posts
 from reddit_scam_sentry import notifier
 
 logger = logging.getLogger("sentry.main")
@@ -71,20 +78,30 @@ async def process_submission(
     author_info = await fetch_author_info(reddit, db, author.name)
 
     post_url = getattr(submission, "url", "") or ""
+    post_title = submission.title or ""
+    post_body = getattr(submission, "selftext", "") or ""
+
+    author_recent_posts = await fetch_recent_posts(
+        reddit, author.name, limit=config.HISTORY_POSTS_LIMIT
+    )
+    recent_flagged_bodies = await get_recent_flagged_bodies(db)
+
+    subreddit_name = submission.subreddit.display_name if submission.subreddit else "unknown"
 
     score, reasons = compute_score(
-        title=submission.title or "",
-        body=getattr(submission, "selftext", "") or "",
+        title=post_title,
+        body=post_body,
         url=post_url,
         author_name=author.name,
         account_created_utc=author_info["created_utc"],
         link_karma=author_info["link_karma"],
         comment_karma=author_info["comment_karma"],
+        author_recent_posts=author_recent_posts,
+        recent_flagged_bodies=recent_flagged_bodies,
+        current_subreddit=subreddit_name,
     )
 
     flagged = score >= config.RISK_THRESHOLD
-
-    subreddit_name = submission.subreddit.display_name if submission.subreddit else "unknown"
     reasons_str = "; ".join(reasons) if reasons else "none"
 
     if flagged:
@@ -121,7 +138,10 @@ async def process_submission(
 
     if flagged:
         await apply_flair(submission, score)
-        await notifier.notify(submission, score, reasons)
+        try:
+            await notifier.notify(submission, score, reasons)
+        except Exception as exc:
+            logger.warning("Notifier raised unexpectedly for post %s: %s", submission.id, exc)
 
 
 async def stream_subreddit(

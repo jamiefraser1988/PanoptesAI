@@ -8,6 +8,11 @@ Final score is clamped to 0–100.
 
 import re
 import time
+from typing import Any
+
+from reddit_scam_sentry.history import score_history
+from reddit_scam_sentry.similarity import score_similarity
+from reddit_scam_sentry import config as _config
 
 SCAM_KEYWORDS: list[str] = [
     "telegram",
@@ -126,9 +131,12 @@ def compute_score(
     account_created_utc: float,
     link_karma: int,
     comment_karma: int,
+    author_recent_posts: list[dict[str, Any]] | None = None,
+    recent_flagged_bodies: list[str] | None = None,
+    current_subreddit: str = "",
 ) -> tuple[int, list[str]]:
     combined_links = body + " " + url
-    rules = [
+    rules: list[tuple[int, str | None]] = [
         _rule_keywords(title, body),
         _rule_suspicious_links(combined_links),
         _rule_external_links(combined_links),
@@ -136,6 +144,18 @@ def compute_score(
         _rule_karma_shape(link_karma, comment_karma),
         _rule_bot_username(author_name),
     ]
+
+    if author_recent_posts is not None:
+        rules.append(score_history(author_recent_posts, current_subreddit, title or body))
+
+    if recent_flagged_bodies is not None:
+        rules.append(
+            score_similarity(
+                body or title,
+                recent_flagged_bodies,
+                threshold=_config.SIMILARITY_THRESHOLD,
+            )
+        )
 
     total = 0
     reasons: list[str] = []

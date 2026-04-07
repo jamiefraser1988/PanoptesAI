@@ -15,9 +15,7 @@ Failures are logged as WARNING and never propagate to the caller.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
-import time
 from datetime import datetime, timezone
 from typing import Any
 

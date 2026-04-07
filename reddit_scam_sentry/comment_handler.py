@@ -130,7 +130,12 @@ async def process_comment(
     )
 
     if flagged:
-        await notifier.notify_comment(comment, score, reasons)
+        try:
+            await notifier.notify_comment(comment, score, reasons)
+        except Exception as exc:
+            logger.warning(
+                "Notifier raised unexpectedly for comment %s: %s", comment.id, exc
+            )
 
 
 async def stream_comments(

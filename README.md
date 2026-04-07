@@ -22,6 +22,8 @@ A server-side moderator bot that monitors subreddit posts in real time, scores e
 | Account age < 30 days | 15 |
 | Zero comment karma + non-zero link karma | 15–20 |
 | Bot-like username pattern (letters + many digits) | 15 |
+| Cross-subreddit reposting (same text in ≥2 other subs within 7 days) | 25 |
+| High TF-IDF similarity to a previously-flagged post (≥60% by default) | 20 |
 
 ## Prerequisites
 
