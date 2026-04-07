@@ -261,7 +261,7 @@ docker compose up -d
 
 This starts:
 - **bot** — the streaming moderator bot
-- **dashboard** — the FastAPI dashboard on port 8000 (`http://localhost:8000`)
+- **dashboard** — the FastAPI dashboard on port 8001 (`http://localhost:8001`)
 
 The SQLite database is mounted at `./sentry.db` on the host.
 
