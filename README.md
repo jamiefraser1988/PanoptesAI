@@ -102,6 +102,77 @@ The bot will stream new posts and print a line for each:
 2026-01-01T12:00:01 [INFO] sentry.main — OK      | r/test | score=10 | post=def456 | author=longtime_user | Look at my cat
 ```
 
+## Alerting (Discord, Slack, Webhook)
+
+When a post or comment breaches the notify threshold the bot can send a real-time alert to any HTTP endpoint — Discord, Slack, or a custom webhook.
+
+### Discord setup
+
+1. Open your Discord server settings → **Integrations → Webhooks → New Webhook**
+2. Copy the webhook URL (format: `https://discord.com/api/webhooks/<id>/<token>`)
+3. Add to `.env`:
+
+```env
+WEBHOOK_URL=https://discord.com/api/webhooks/your_id/your_token
+WEBHOOK_TYPE=discord
+NOTIFY_THRESHOLD=70
+```
+
+The bot will post a rich embed with the subreddit, a clickable post/comment link, author, risk score, and reasons.
+
+### Slack setup
+
+1. Create a Slack **Incoming Webhook** at https://api.slack.com/messaging/webhooks
+2. Add to `.env`:
+
+```env
+WEBHOOK_URL=https://hooks.slack.com/services/T.../B.../xxx
+WEBHOOK_TYPE=slack
+NOTIFY_THRESHOLD=70
+```
+
+### Generic JSON webhook
+
+Any HTTP endpoint that accepts a `POST` with `Content-Type: application/json` works.
+
+```env
+WEBHOOK_URL=https://your-service.example.com/hook
+WEBHOOK_TYPE=generic
+```
+
+**Post payload:**
+
+```json
+{
+  "post_id": "abc123",
+  "subreddit": "your_sub",
+  "author": "suspicious_user",
+  "title": "Earn $500/day from home!",
+  "score": 85,
+  "reasons": ["Scam keywords: telegram, crypto", "Very new account: 2 days old"],
+  "url": "https://www.reddit.com/comments/abc123",
+  "flagged_at": "2026-01-01T12:00:00+00:00"
+}
+```
+
+**Comment payload** (same fields plus `comment_id` and `body_snippet` instead of `title`):
+
+```json
+{
+  "comment_id": "xyz789",
+  "post_id": "abc123",
+  "subreddit": "your_sub",
+  "author": "suspicious_user",
+  "body_snippet": "DM me for crypto signals…",
+  "score": 80,
+  "reasons": ["Scam keywords: telegram", "Very new account: 2 days old"],
+  "url": "https://www.reddit.com/comments/abc123/_/xyz789",
+  "flagged_at": "2026-01-01T12:00:00+00:00"
+}
+```
+
+Webhook calls are fire-and-forget — failures are logged as warnings and never interrupt the stream.
+
 ## Enabling Flair
 
 1. Ensure your bot account is a moderator with flair permissions in the target subreddit

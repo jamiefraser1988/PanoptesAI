@@ -13,7 +13,7 @@ import time
 import aiosqlite
 import asyncpraw
 
-from reddit_scam_sentry import config
+from reddit_scam_sentry import config, notifier
 from reddit_scam_sentry.scorer import compute_score
 from reddit_scam_sentry.store import (
     get_cached_author,
@@ -128,6 +128,9 @@ async def process_comment(
         reasons=reasons,
         flagged=flagged,
     )
+
+    if flagged:
+        await notifier.notify_comment(comment, score, reasons)
 
 
 async def stream_comments(

@@ -38,3 +38,7 @@ DB_PATH: str = _optional("DB_PATH", "./sentry.db")
 USER_CACHE_TTL_SECONDS: int = int(_optional("USER_CACHE_TTL_SECONDS", str(6 * 3600)))
 
 SCAN_COMMENTS: bool = _optional("SCAN_COMMENTS", "true").strip().lower() not in ("false", "0", "no")
+
+WEBHOOK_URL: str = _optional("WEBHOOK_URL", "")
+WEBHOOK_TYPE: str = _optional("WEBHOOK_TYPE", "generic").strip().lower()
+NOTIFY_THRESHOLD: int = int(_optional("NOTIFY_THRESHOLD", str(RISK_THRESHOLD)))

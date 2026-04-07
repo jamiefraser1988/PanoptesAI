@@ -20,6 +20,7 @@ from reddit_scam_sentry.actions import apply_flair
 from reddit_scam_sentry.store import init_db, get_cached_author, set_cached_author, save_decision
 from reddit_scam_sentry.utils import exponential_backoff, truncate
 from reddit_scam_sentry.comment_handler import stream_comments
+from reddit_scam_sentry import notifier
 
 logger = logging.getLogger("sentry.main")
 
@@ -120,6 +121,7 @@ async def process_submission(
 
     if flagged:
         await apply_flair(submission, score)
+        await notifier.notify(submission, score, reasons)
 
 
 async def stream_subreddit(
