@@ -208,5 +208,10 @@ async def main() -> None:
             await reddit.close()
 
 
-if __name__ == "__main__":
+def asyncio_main() -> None:
+    """Console script entry point — runs the bot synchronously via asyncio.run()."""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    asyncio_main()

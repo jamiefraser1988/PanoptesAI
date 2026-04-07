@@ -239,3 +239,54 @@ requirements.txt       — Python dependencies
 - Mod feedback loop (true/false positive) to tune scoring
 - FastAPI dashboard for flagged queue + analytics
 - Multi-subreddit SaaS management + advanced scoring tiers
+
+## Production Deployment
+
+### Docker (recommended)
+
+```bash
+cp .env.example .env
+# Edit .env with your Reddit credentials and subreddit list
+docker build -t reddit-scam-sentry .
+docker run --rm --env-file .env -v "$PWD/sentry.db:/app/sentry.db" reddit-scam-sentry
+```
+
+### Docker Compose (bot + dashboard)
+
+```bash
+cp .env.example .env
+# Edit .env with your credentials
+docker compose up -d
+```
+
+This starts:
+- **bot** — the streaming moderator bot
+- **dashboard** — the FastAPI dashboard on port 8000 (`http://localhost:8000`)
+
+The SQLite database is mounted at `./sentry.db` on the host.
+
+### Systemd (bare-metal Linux)
+
+1. Install the package into a virtual environment:
+   ```bash
+   sudo useradd --system --create-home sentry
+   sudo mkdir -p /opt/reddit-scam-sentry
+   sudo python3 -m venv /opt/reddit-scam-sentry/venv
+   sudo /opt/reddit-scam-sentry/venv/bin/pip install .
+   sudo cp .env.example /opt/reddit-scam-sentry/.env
+   # Edit /opt/reddit-scam-sentry/.env with your credentials
+   sudo chown -R sentry:sentry /opt/reddit-scam-sentry
+   ```
+
+2. Install the systemd service:
+   ```bash
+   sudo cp deploy/sentry.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now sentry
+   ```
+
+3. Check status and logs:
+   ```bash
+   sudo systemctl status sentry
+   sudo journalctl -u sentry -f
+   ```

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "reddit-scam-sentry"
+version = "0.1.0"
+description = "Server-side Reddit moderator bot that scores posts for scam/bot risk in real time"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["reddit", "moderation", "scam-detection", "bot"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet",
+]
+dependencies = [
+    "asyncpraw==7.7.1",
+    "python-dotenv>=1.0.0",
+    "aiosqlite==0.17.0",
+    "aiohttp>=3.9.0",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+scam-sentry = "reddit_scam_sentry.main:asyncio_main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["reddit_scam_sentry*", "dashboard*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

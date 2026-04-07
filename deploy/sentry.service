@@ -1,0 +1,21 @@
+[Unit]
+Description=Reddit Scam Sentry Bot
+Documentation=https://github.com/your-org/reddit-scam-sentry
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sentry
+Group=sentry
+WorkingDirectory=/opt/reddit-scam-sentry
+EnvironmentFile=/opt/reddit-scam-sentry/.env
+ExecStart=/opt/reddit-scam-sentry/venv/bin/scam-sentry
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scam-sentry
+
+[Install]
+WantedBy=multi-user.target
