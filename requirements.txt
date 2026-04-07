@@ -1,3 +1,8 @@
 asyncpraw>=7.7.1
 python-dotenv>=1.0.0
-aiosqlite>=0.20.0
+aiosqlite>=0.17.0,<=0.17.0
+aiosqlite==0.17.0
+asyncpraw==7.7.1
+pytest
+pytest-asyncio
+python-dotenv
