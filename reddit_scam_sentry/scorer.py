@@ -122,6 +122,30 @@ def _rule_bot_username(username: str) -> tuple[int, str | None]:
     return 0, None
 
 
+def _feedback_adjustment(
+    author_feedback: dict[str, int] | None,
+) -> tuple[int, str | None]:
+    """Adjust score based on moderator feedback history for the author.
+
+    - If most feedback is false_positive → reduce score (negative points).
+    - If most feedback is true_positive → add points.
+    """
+    if not author_feedback or author_feedback.get("total", 0) == 0:
+        return 0, None
+
+    fp = author_feedback.get("false_positive", 0)
+    tp = author_feedback.get("true_positive", 0)
+    total = author_feedback["total"]
+
+    if fp > tp and fp >= 2:
+        reduction = min(fp * 5, 20)
+        return -reduction, f"Author has {fp}/{total} false-positive verdicts (-{reduction}pts)"
+    if tp > fp and tp >= 2:
+        boost = min(tp * 3, 15)
+        return boost, f"Author has {tp}/{total} confirmed-scam verdicts (+{boost}pts)"
+    return 0, None
+
+
 def compute_score(
     *,
     title: str,
@@ -134,6 +158,7 @@ def compute_score(
     author_recent_posts: list[dict[str, Any]] | None = None,
     recent_flagged_bodies: list[str] | None = None,
     current_subreddit: str = "",
+    author_feedback: dict[str, int] | None = None,
 ) -> tuple[int, list[str]]:
     combined_links = body + " " + url
     rules: list[tuple[int, str | None]] = [
@@ -157,10 +182,12 @@ def compute_score(
             )
         )
 
+    rules.append(_feedback_adjustment(author_feedback))
+
     total = 0
     reasons: list[str] = []
     for pts, reason in rules:
-        if pts > 0 and reason:
+        if reason:
             total += pts
             reasons.append(reason)
 

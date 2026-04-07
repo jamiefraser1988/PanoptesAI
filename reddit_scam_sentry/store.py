@@ -159,6 +159,37 @@ async def get_recent_flagged_bodies(
     return rows
 
 
+async def get_author_feedback_stats(
+    db: aiosqlite.Connection,
+    author: str,
+) -> dict[str, int]:
+    """Return feedback counts for a given author.
+
+    Returns a dict with keys ``true_positive``, ``false_positive``, ``total``.
+    """
+    stats: dict[str, int] = {"true_positive": 0, "false_positive": 0, "total": 0}
+    try:
+        async with db.execute(
+            """
+            SELECT feedback, COUNT(*) as cnt
+            FROM decisions
+            WHERE author = ? AND feedback IS NOT NULL AND feedback != ''
+            GROUP BY feedback
+            """,
+            (author,),
+        ) as cursor:
+            async for row in cursor:
+                fb, cnt = row[0], row[1]
+                stats["total"] += cnt
+                if fb == "true_positive":
+                    stats["true_positive"] += cnt
+                elif fb == "false_positive":
+                    stats["false_positive"] += cnt
+    except Exception:
+        pass
+    return stats
+
+
 async def save_comment_decision(
     db: aiosqlite.Connection,
     *,

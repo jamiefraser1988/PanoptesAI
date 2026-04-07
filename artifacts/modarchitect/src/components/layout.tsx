@@ -1,21 +1,54 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Shield, Activity, Settings } from "lucide-react";
+import { Shield, Activity, Settings, LogOut } from "lucide-react";
 import { useHealthCheck, getHealthCheckQueryKey } from "@workspace/api-client-react";
+import { Button } from "@/components/ui/button";
+import { useUser, useClerk } from "@clerk/react";
+
+function UserSection() {
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
+
+  if (!isLoaded || !user) return null;
+
+  return (
+    <div className="px-4 py-3 border-t border-border">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+          {user.firstName?.[0] || user.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || "U"}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">
+            {user.firstName || user.emailAddresses?.[0]?.emailAddress || "User"}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
+          onClick={() => signOut({ redirectUrl: "/" })}
+        >
+          <LogOut className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+const clerkEnabled = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { data: health } = useHealthCheck({ query: { queryKey: getHealthCheckQueryKey() } });
 
   const navItems = [
-    { href: "/", label: "Flagged Queue", icon: Shield },
+    { href: "/dashboard", label: "Flagged Queue", icon: Shield },
     { href: "/analytics", label: "Stats & Analytics", icon: Activity },
     { href: "/config", label: "Configuration", icon: Settings },
   ];
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
-      {/* Sidebar */}
       <aside className="w-64 border-r border-border bg-sidebar flex flex-col shrink-0">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <Shield className="w-6 h-6 text-primary mr-2" />
@@ -28,12 +61,12 @@ export default function Layout({ children }: { children: ReactNode }) {
             const isActive = location === item.href;
             const Icon = item.icon;
             return (
-              <Link 
-                key={item.href} 
+              <Link
+                key={item.href}
                 href={item.href}
                 className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive 
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-primary" 
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-primary"
                     : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground border-l-2 border-transparent"
                 }`}
                 data-testid={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
@@ -44,6 +77,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+
+        {clerkEnabled && <UserSection />}
+
         <div className="p-4 border-t border-border">
           <div className="flex items-center text-xs text-muted-foreground">
             <div className={`w-2 h-2 rounded-full mr-2 ${health?.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -52,7 +88,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-card/50 shrink-0">
           <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">

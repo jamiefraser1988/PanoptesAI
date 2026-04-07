@@ -23,6 +23,7 @@ from reddit_scam_sentry.store import (
     set_cached_author,
     save_decision,
     get_recent_flagged_bodies,
+    get_author_feedback_stats,
 )
 from reddit_scam_sentry.utils import exponential_backoff, truncate
 from reddit_scam_sentry.comment_handler import stream_comments
@@ -99,6 +100,7 @@ async def process_submission(
         author_recent_posts=author_recent_posts,
         recent_flagged_bodies=recent_flagged_bodies,
         current_subreddit=subreddit_name,
+        author_feedback=await get_author_feedback_stats(db, author.name),
     )
 
     flagged = score >= config.RISK_THRESHOLD

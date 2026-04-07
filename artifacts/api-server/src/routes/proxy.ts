@@ -1,8 +1,7 @@
 import { Router, type IRouter } from "express";
-import { readFile, writeFile } from "fs/promises";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { getAuth } from "@clerk/express";
 import { logger } from "../lib/logger";
+import { db, eq, tenantsTable, tenantConfigsTable } from "@workspace/db";
 import {
   ListDecisionsQueryParams,
   ListDecisionsResponse,
@@ -21,35 +20,7 @@ const router: IRouter = Router();
 
 const FASTAPI_URL = process.env.FASTAPI_URL ?? "http://localhost:8001";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const CONFIG_PATH = join(__dirname, "..", "..", "config.json");
-
-interface BotConfig {
-  score_threshold: number;
-  watched_subreddits: string[];
-  webhook_url?: string | null;
-}
-
-const DEFAULT_CONFIG: BotConfig = {
-  score_threshold: 60,
-  watched_subreddits: [],
-  webhook_url: null,
-};
-
 type RawDecision = Record<string, unknown> & { score: number; content_type?: string };
-
-async function readConfig(): Promise<BotConfig> {
-  try {
-    const raw = await readFile(CONFIG_PATH, "utf-8");
-    return JSON.parse(raw) as BotConfig;
-  } catch {
-    return { ...DEFAULT_CONFIG };
-  }
-}
-
-async function writeConfig(config: BotConfig): Promise<void> {
-  await writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), "utf-8");
-}
 
 function buildFastapiUrl(path: string, query: Record<string, unknown>): string {
   const url = new URL(path, FASTAPI_URL);
@@ -113,6 +84,56 @@ function isWebhookUrlSafe(rawUrl: string): { safe: boolean; reason?: string } {
   }
 
   return { safe: true };
+}
+
+async function getOrCreateTenant(clerkUserId: string) {
+  const existing = await db
+    .select()
+    .from(tenantsTable)
+    .where(eq(tenantsTable.clerkUserId, clerkUserId))
+    .limit(1);
+
+  if (existing.length > 0) return existing[0];
+
+  const [tenant] = await db
+    .insert(tenantsTable)
+    .values({ clerkUserId, name: "My Organization" })
+    .onConflictDoNothing()
+    .returning();
+
+  if (tenant) return tenant;
+
+  const [fallback] = await db
+    .select()
+    .from(tenantsTable)
+    .where(eq(tenantsTable.clerkUserId, clerkUserId))
+    .limit(1);
+  return fallback;
+}
+
+async function getTenantConfig(tenantId: number) {
+  const existing = await db
+    .select()
+    .from(tenantConfigsTable)
+    .where(eq(tenantConfigsTable.tenantId, tenantId))
+    .limit(1);
+
+  if (existing.length > 0) return existing[0];
+
+  const [config] = await db
+    .insert(tenantConfigsTable)
+    .values({ tenantId })
+    .onConflictDoNothing()
+    .returning();
+
+  if (config) return config;
+
+  const [fallback] = await db
+    .select()
+    .from(tenantConfigsTable)
+    .where(eq(tenantConfigsTable.tenantId, tenantId))
+    .limit(1);
+  return fallback;
 }
 
 router.get("/decisions", async (req, res): Promise<void> => {
@@ -321,10 +342,23 @@ router.get("/stats", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/config", async (_req, res): Promise<void> => {
+router.get("/config", async (req, res): Promise<void> => {
   try {
-    const config = await readConfig();
-    const result = GetConfigResponse.parse(config);
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const tenant = await getOrCreateTenant(userId);
+    const config = await getTenantConfig(tenant.id);
+
+    const result = GetConfigResponse.parse({
+      score_threshold: config?.scoreThreshold ?? 70,
+      watched_subreddits: (config?.watchedSubreddits as string[]) ?? [],
+      webhook_url: config?.webhookUrl ?? null,
+    });
     res.json(result);
   } catch (err) {
     logger.error({ err }, "Failed to read config");
@@ -340,7 +374,33 @@ router.post("/config", async (req, res): Promise<void> => {
   }
 
   try {
-    await writeConfig(body.data as BotConfig);
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const tenant = await getOrCreateTenant(userId);
+
+    await db
+      .insert(tenantConfigsTable)
+      .values({
+        tenantId: tenant.id,
+        scoreThreshold: body.data.score_threshold,
+        watchedSubreddits: body.data.watched_subreddits,
+        webhookUrl: body.data.webhook_url ?? null,
+      })
+      .onConflictDoUpdate({
+        target: tenantConfigsTable.tenantId,
+        set: {
+          scoreThreshold: body.data.score_threshold,
+          watchedSubreddits: body.data.watched_subreddits,
+          webhookUrl: body.data.webhook_url ?? null,
+          updatedAt: new Date(),
+        },
+      });
+
     const result = SaveConfigResponse.parse(body.data);
     res.json(result);
   } catch (err) {
@@ -351,19 +411,28 @@ router.post("/config", async (req, res): Promise<void> => {
 
 router.post("/config/test-webhook", async (req, res): Promise<void> => {
   try {
-    const config = await readConfig();
-    if (!config.webhook_url) {
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const tenant = await getOrCreateTenant(userId);
+    const config = await getTenantConfig(tenant.id);
+
+    if (!config?.webhookUrl) {
       res.json(TestWebhookResponse.parse({ success: false, message: "No webhook URL configured" }));
       return;
     }
 
-    const safetyCheck = isWebhookUrlSafe(config.webhook_url);
+    const safetyCheck = isWebhookUrlSafe(config.webhookUrl);
     if (!safetyCheck.safe) {
       res.json(TestWebhookResponse.parse({ success: false, message: safetyCheck.reason ?? "Unsafe webhook URL" }));
       return;
     }
 
-    const response = await fetch(config.webhook_url, {
+    const response = await fetch(config.webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "test", message: "MODArchitect webhook test" }),
@@ -377,6 +446,23 @@ router.post("/config/test-webhook", async (req, res): Promise<void> => {
   } catch (err) {
     req.log.error({ err }, "Webhook test failed");
     res.json(TestWebhookResponse.parse({ success: false, message: String(err) }));
+  }
+});
+
+router.get("/tenant", async (req, res): Promise<void> => {
+  try {
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const tenant = await getOrCreateTenant(userId);
+    res.json({ id: tenant.id, name: tenant.name, createdAt: tenant.createdAt });
+  } catch (err) {
+    logger.error({ err }, "Failed to get tenant");
+    res.status(500).json({ error: "Failed to get tenant info" });
   }
 });
 
