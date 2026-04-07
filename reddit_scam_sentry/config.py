@@ -36,3 +36,5 @@ FLAG_FLAIR_TEMPLATE_ID: str = _optional("FLAG_FLAIR_TEMPLATE_ID", "")
 DB_PATH: str = _optional("DB_PATH", "./sentry.db")
 
 USER_CACHE_TTL_SECONDS: int = int(_optional("USER_CACHE_TTL_SECONDS", str(6 * 3600)))
+
+SCAN_COMMENTS: bool = _optional("SCAN_COMMENTS", "true").strip().lower() not in ("false", "0", "no")

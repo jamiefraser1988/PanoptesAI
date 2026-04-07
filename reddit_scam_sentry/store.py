@@ -29,6 +29,22 @@ async def init_db(db: aiosqlite.Connection) -> None:
         )
         """
     )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS comment_decisions (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            comment_id   TEXT NOT NULL UNIQUE,
+            post_id      TEXT NOT NULL,
+            subreddit    TEXT NOT NULL,
+            author       TEXT NOT NULL,
+            body_snippet TEXT NOT NULL,
+            score        INTEGER NOT NULL,
+            reasons      TEXT NOT NULL,
+            flagged      INTEGER NOT NULL,
+            decided_at   REAL NOT NULL
+        )
+        """
+    )
     await db.commit()
 
 
@@ -83,6 +99,41 @@ async def save_decision(
             subreddit,
             author,
             title,
+            score,
+            json.dumps(reasons),
+            int(flagged),
+            now,
+        ),
+    )
+    await db.commit()
+
+
+async def save_comment_decision(
+    db: aiosqlite.Connection,
+    *,
+    comment_id: str,
+    post_id: str,
+    subreddit: str,
+    author: str,
+    body_snippet: str,
+    score: int,
+    reasons: list[str],
+    flagged: bool,
+) -> None:
+    now = time.time()
+    await db.execute(
+        """
+        INSERT OR IGNORE INTO comment_decisions
+            (comment_id, post_id, subreddit, author, body_snippet,
+             score, reasons, flagged, decided_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            comment_id,
+            post_id,
+            subreddit,
+            author,
+            body_snippet,
             score,
             json.dumps(reasons),
             int(flagged),

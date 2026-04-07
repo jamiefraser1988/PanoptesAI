@@ -19,6 +19,7 @@ from reddit_scam_sentry.scorer import compute_score
 from reddit_scam_sentry.actions import apply_flair
 from reddit_scam_sentry.store import init_db, get_cached_author, set_cached_author, save_decision
 from reddit_scam_sentry.utils import exponential_backoff, truncate
+from reddit_scam_sentry.comment_handler import stream_comments
 
 logger = logging.getLogger("sentry.main")
 
@@ -158,10 +159,11 @@ async def main() -> None:
     setup_logging()
     logger.info("Starting Reddit Scam Sentry")
     logger.info(
-        "Monitoring subreddits: %s | threshold=%d | action=%s",
+        "Monitoring subreddits: %s | threshold=%d | action=%s | scan_comments=%s",
         ", ".join(config.SUBREDDITS),
         config.RISK_THRESHOLD,
         config.ACTION_MODE,
+        config.SCAN_COMMENTS,
     )
 
     async with aiosqlite.connect(config.DB_PATH) as db:
@@ -173,6 +175,11 @@ async def main() -> None:
                 asyncio.create_task(stream_subreddit(reddit, db, sub))
                 for sub in config.SUBREDDITS
             ]
+            if config.SCAN_COMMENTS:
+                tasks += [
+                    asyncio.create_task(stream_comments(reddit, db, sub))
+                    for sub in config.SUBREDDITS
+                ]
             await asyncio.gather(*tasks)
         finally:
             await reddit.close()
