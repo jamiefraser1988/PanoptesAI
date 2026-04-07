@@ -17,7 +17,12 @@ _db: Optional[aiosqlite.Connection] = None
 
 
 async def get_db() -> aiosqlite.Connection:
-    return _db  # type: ignore[return-value]
+    if _db is None:
+        raise RuntimeError(
+            "Database connection is not open. "
+            "Ensure the app lifespan has started before calling get_db()."
+        )
+    return _db
 
 
 async def open_db() -> None:
