@@ -275,3 +275,47 @@ class TestHTMLPage:
         resp = await client.get("/?subreddit=memes")
         assert "Meme post" in resp.text
         assert "Other post" not in resp.text
+
+    async def test_has_content_security_policy_header(self, client):
+        resp = await client.get("/")
+        assert "content-security-policy" in resp.headers
+
+
+class TestXSSEscaping:
+    async def test_xss_in_title_is_escaped(self, client, override_db):
+        payload = '<script>alert(1)</script>'
+        await _insert(override_db, post_id="xss1", title=payload, flagged=1)
+        resp = await client.get("/")
+        assert payload not in resp.text
+        assert "&lt;script&gt;" in resp.text
+
+    async def test_xss_in_author_is_escaped(self, client, override_db):
+        payload = '"><img src=x onerror=alert(1)>'
+        await _insert(override_db, post_id="xss2", author=payload, flagged=1)
+        resp = await client.get("/")
+        assert payload not in resp.text
+        assert "&lt;img" in resp.text
+
+    async def test_xss_in_subreddit_is_escaped(self, client, override_db):
+        payload = '"><script>evil()</script>'
+        await _insert(override_db, post_id="xss3", subreddit=payload, flagged=1)
+        resp = await client.get("/")
+        assert payload not in resp.text
+        assert "&lt;script&gt;" in resp.text
+
+    async def test_xss_in_reasons_is_escaped(self, client, override_db):
+        payload = '<b>bold injection</b>'
+        await _insert(
+            override_db,
+            post_id="xss4",
+            flagged=1,
+            reasons=json.dumps([payload]),
+        )
+        resp = await client.get("/")
+        assert payload not in resp.text
+        assert "&lt;b&gt;" in resp.text
+
+    async def test_xss_in_subreddit_filter_param_is_escaped(self, client, override_db):
+        resp = await client.get('/?subreddit="><script>alert(1)</script>')
+        assert resp.status_code == 200
+        assert "<script>alert(1)</script>" not in resp.text

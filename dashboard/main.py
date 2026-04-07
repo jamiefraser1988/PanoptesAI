@@ -16,6 +16,7 @@ or:
 
 from __future__ import annotations
 
+import html as html_module
 import json
 import math
 import os
@@ -128,8 +129,9 @@ async def html_queue(
         "SELECT DISTINCT subreddit FROM decisions ORDER BY subreddit"
     ) as cur:
         subs = [r[0] for r in await cur.fetchall()]
+    e = html_module.escape
     sub_options = "\n".join(
-        f'<option value="{s}" {"selected" if s == subreddit else ""}>{s}</option>'
+        '<option value="' + e(s) + '" ' + ("selected" if s == subreddit else "") + ">" + e(s) + "</option>"
         for s in subs
     )
 
@@ -144,12 +146,14 @@ async def html_queue(
         for row in rows:
             d = _row_to_decision(row)
             cls_tp, cls_fp, cls_un = _feedback_classes(d.get("feedback"))
-            reasons_str = " &bull; ".join(d["reasons"]) if d["reasons"] else "&mdash;"
+            reasons_str = (
+                " &bull; ".join(e(r) for r in d["reasons"]) if d["reasons"] else "&mdash;"
+            )
             rows_html += build_row(
-                post_id=d["post_id"],
-                title=d["title"][:120],
-                subreddit=d["subreddit"],
-                author=d["author"],
+                post_id=e(d["post_id"]),
+                title=e(d["title"][:120]),
+                subreddit=e(d["subreddit"]),
+                author=e(d["author"]),
                 score=d["score"],
                 score_class=_score_class(d["score"]),
                 decided_at=_format_ts(d["decided_at"]),
@@ -168,7 +172,9 @@ async def html_queue(
             "</table>"
         )
 
-    qs_base = "?subreddit=" + subreddit + "&min_score=" + min_score
+    safe_sub = e(subreddit)
+    safe_ms = e(min_score)
+    qs_base = "?subreddit=" + safe_sub + "&min_score=" + safe_ms
     prev_link = (
         '<a href="' + qs_base + '&page=' + str(page - 1) + '">&#8592; Prev</a>'
         if page > 1 else '<span>&#8592; Prev</span>'
@@ -178,7 +184,7 @@ async def html_queue(
         if page < total_pages else '<span>Next &#8594;</span>'
     )
 
-    html = build_page(
+    content = build_page(
         total_posts=total_posts,
         flagged_posts=total_flag_count,
         flag_rate_pct=flag_rate,
@@ -192,7 +198,10 @@ async def html_queue(
         prev_link=prev_link,
         next_link=next_link,
     )
-    return HTMLResponse(content=html)
+    return HTMLResponse(
+        content=content,
+        headers={"Content-Security-Policy": "default-src 'self'; script-src 'unsafe-inline'"},
+    )
 
 
 @app.get("/decisions", response_model=list[DecisionOut])
