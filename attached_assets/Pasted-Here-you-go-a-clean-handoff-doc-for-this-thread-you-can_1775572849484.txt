@@ -1,0 +1,209 @@
+Here you go — a clean **handoff doc** for this thread you can drop into a notes file / ticket.
+
+---
+
+# Reddit Scam/Bot Detection Mod Bot — Handoff Doc
+
+## Goal
+
+Build a **server-side moderator bot** (not a browser extension) that monitors subreddit posts, evaluates scam/bot risk using user/profile + behaviour signals, and **applies mod actions** (start with post flair) when risk is high. Secondary goal: use this project to **improve Python skills** (async, API integration, scoring, caching).
+
+## What “tagging” means
+
+* MVP: apply **post flair** such as “⚠️ Possible Scam” (visible to everyone).
+* This requires the bot account to be a **moderator** with flair permissions in the target subreddit.
+
+## Monetisation intent
+
+Target niche: **Scam / bot detection** for subreddit moderators.
+Potential model: SaaS tiers (free/basic → paid advanced scoring/alerts/analytics/AI). Early MVP focuses on explainable rule-based scoring; AI can be added later.
+
+## Constraints / Compliance
+
+* Use Reddit OAuth and official API via Python libraries.
+* Avoid anything that automates posting, voting, or data resale.
+* Respect rate limits; implement caching and throttling.
+
+---
+
+# MVP Scope (Phase 1)
+
+**Inputs**
+
+* New posts from chosen subreddit(s)
+* Author basic stats (account age, karma)
+* Post content (title + selftext)
+* Links/domains inside post text
+
+**Processing**
+
+* Rule-based **risk scoring** (0–100) with **reasons**.
+* Store decisions + reasons in a local DB for audit/debugging.
+
+**Outputs**
+
+* Console logs: OK vs FLAGGED, score, reasons
+* Optional mod action: set **flair** on flagged posts
+
+---
+
+# Tech Stack
+
+* Python 3.10+ recommended
+* `asyncpraw` (Reddit API wrapper)
+* `python-dotenv` (.env config)
+* `aiosqlite` (SQLite storage for MVP)
+* Optional later: Redis/Postgres, FastAPI dashboard, ML/NLP libs
+
+---
+
+# Repository Structure (planned)
+
+```
+reddit_scam_sentry/
+  .env.example
+  README.md
+  sentry/
+    main.py
+    config.py
+    logging_setup.py
+    reddit_client.py
+    scorer.py
+    actions.py
+    store.py
+    utils.py
+```
+
+---
+
+# Setup Checklist (start here)
+
+## Step 0 — Test Subreddit + Permissions
+
+* Create or use a subreddit you moderate.
+* Ensure the bot account has permissions to set post flair (or full mod perms).
+
+## Step 1 — Create Reddit API App
+
+* Create a Reddit app of type **script**
+* Capture:
+
+  * `client_id`
+  * `client_secret`
+* Set a redirect URI (required by Reddit UI even for script apps; not heavily used for this mode)
+
+## Step 2 — Local Environment
+
+```bash
+python -m venv .venv
+# Windows PowerShell:
+.\.venv\Scripts\Activate.ps1
+pip install asyncpraw python-dotenv aiosqlite
+```
+
+## Step 3 — Configure `.env`
+
+```env
+REDDIT_CLIENT_ID=xxx
+REDDIT_CLIENT_SECRET=xxx
+REDDIT_USERNAME=xxx
+REDDIT_PASSWORD=xxx
+REDDIT_USER_AGENT=ScamSentry/0.1 by u_yourname
+
+SUBREDDITS=your_test_sub
+RISK_THRESHOLD=70
+ACTION_MODE=none   # none|flair
+
+FLAG_FLAIR_TEXT=⚠️ Possible Scam
+FLAG_FLAIR_CSS=possible-scam
+DB_PATH=./sentry.db
+```
+
+## Step 4 — Smoke Test (connectivity)
+
+Create `smoke_test.py`:
+
+```python
+import os, asyncio, asyncpraw
+from dotenv import load_dotenv
+load_dotenv()
+
+async def main():
+    reddit = asyncpraw.Reddit(
+        client_id=os.environ["REDDIT_CLIENT_ID"],
+        client_secret=os.environ["REDDIT_CLIENT_SECRET"],
+        username=os.environ["REDDIT_USERNAME"],
+        password=os.environ["REDDIT_PASSWORD"],
+        user_agent=os.environ["REDDIT_USER_AGENT"],
+    )
+    me = await reddit.user.me()
+    print("Logged in as:", me)
+    sub = await reddit.subreddit(os.environ.get("SUBREDDITS", "test"))
+    print("Subreddit:", sub.display_name)
+
+asyncio.run(main())
+```
+
+Run:
+
+```bash
+python smoke_test.py
+```
+
+**If 2FA is enabled:** username/password auth may fail. Plan to switch to a refresh-token OAuth flow.
+
+---
+
+# Current MVP Implementation Summary
+
+### Core flow
+
+* Stream new submissions from target subreddit(s)
+* Fetch author info (cached)
+* Compute risk score + reasons
+* Log decision in SQLite
+* If score ≥ threshold and `ACTION_MODE=flair`, apply flair via mod API
+
+### Scoring signals (initial)
+
+* Scam keywords (“telegram”, “dm me”, “crypto”, etc.)
+* External links + suspicious shorteners (t.me, bit.ly, etc.)
+* Account age < 7 days / < 30 days
+* Karma shape (high link karma, zero comment karma)
+* Simple bot-like username pattern (letters + many digits)
+
+### Storage
+
+* `user_cache` table (author stats cached ~6h)
+* `decisions` table (post id, author, score, reasons)
+
+---
+
+# Next Steps (Phase 2+)
+
+1. Add **comment scanning** (many scams happen in replies)
+2. Add **recent-history checks** (author’s last N posts/comments)
+3. Add **text similarity detection** (reused scam pitches across subs)
+4. Add **alerting** (Discord/Slack/webhook) for high scores
+5. Add **mod feedback loop** (true/false positive) to train rules/ML
+6. Build a simple dashboard (FastAPI/Blazor later) for flagged queue + analytics
+7. Monetisation: multi-subreddit management + advanced scoring + reporting + AI tier
+
+---
+
+# Known Risks / Gotchas
+
+* Reddit rate limits → must throttle and cache aggressively
+* Flair requires subreddit flair enabled + bot account mod perms
+* Infinite streams can die → add reconnect/backoff later
+* 2FA on account → avoid password login; use OAuth refresh tokens
+
+---
+
+# Reminder Set
+
+A reminder was set for **Saturday 5pm (Europe/London)** to return to this project.
+
+---
+
+If you want, I can also output this as a **README.md** format with commands and troubleshooting sections (2FA, flair permissions, common errors).
