@@ -202,6 +202,10 @@ class TestBuildSlackPost:
         payload = self._call(reasons=[])
         assert "—" in str(payload["blocks"])
 
+    def test_timestamp_in_context_block(self):
+        payload = self._call(flagged_at="2026-01-01T12:00:00+00:00")
+        assert "2026-01-01T12:00:00+00:00" in str(payload["blocks"])
+
 
 # ---------------------------------------------------------------------------
 # Payload builders — Slack comment
@@ -228,6 +232,10 @@ class TestBuildSlackComment:
     def test_header_contains_subreddit(self):
         payload = self._call(subreddit="crypto")
         assert "crypto" in self._call(subreddit="crypto")["blocks"][0]["text"]["text"]
+
+    def test_timestamp_in_context_block(self):
+        payload = self._call(flagged_at="2026-06-01T09:00:00+00:00")
+        assert "2026-06-01T09:00:00+00:00" in str(payload["blocks"])
 
 
 # ---------------------------------------------------------------------------

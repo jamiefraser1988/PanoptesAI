@@ -127,6 +127,12 @@ def _build_slack_post(
                     {"type": "mrkdwn", "text": f"*Reasons*\n{reasons_text}"},
                 ],
             },
+            {
+                "type": "context",
+                "elements": [
+                    {"type": "mrkdwn", "text": f"Reddit Scam Sentry | {flagged_at}"},
+                ],
+            },
             {"type": "divider"},
         ]
     }
@@ -158,6 +164,12 @@ def _build_slack_comment(
                     {"type": "mrkdwn", "text": f"*Author*\nu/{author}"},
                     {"type": "mrkdwn", "text": f"*Risk score*\n{score}"},
                     {"type": "mrkdwn", "text": f"*Reasons*\n{reasons_text}"},
+                ],
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {"type": "mrkdwn", "text": f"Reddit Scam Sentry | {flagged_at}"},
                 ],
             },
             {"type": "divider"},
