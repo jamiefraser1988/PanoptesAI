@@ -68,9 +68,12 @@ async def process_submission(
 
     author_info = await fetch_author_info(reddit, db, author.name)
 
+    post_url = getattr(submission, "url", "") or ""
+
     score, reasons = compute_score(
         title=submission.title or "",
         body=getattr(submission, "selftext", "") or "",
+        url=post_url,
         author_name=author.name,
         account_created_utc=author_info["created_utc"],
         link_karma=author_info["link_karma"],
@@ -80,6 +83,7 @@ async def process_submission(
     flagged = score >= config.RISK_THRESHOLD
 
     subreddit_name = submission.subreddit.display_name if submission.subreddit else "unknown"
+    reasons_str = "; ".join(reasons) if reasons else "none"
 
     if flagged:
         logger.warning(
@@ -89,16 +93,17 @@ async def process_submission(
             submission.id,
             author.name,
             truncate(submission.title),
-            "; ".join(reasons),
+            reasons_str,
         )
     else:
         logger.info(
-            "OK      | r/%s | score=%d | post=%s | author=%s | %s",
+            "OK      | r/%s | score=%d | post=%s | author=%s | %s | reasons=%s",
             subreddit_name,
             score,
             submission.id,
             author.name,
             truncate(submission.title),
+            reasons_str,
         )
 
     await save_decision(

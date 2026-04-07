@@ -121,15 +121,17 @@ def compute_score(
     *,
     title: str,
     body: str,
+    url: str,
     author_name: str,
     account_created_utc: float,
     link_karma: int,
     comment_karma: int,
 ) -> tuple[int, list[str]]:
+    combined_links = body + " " + url
     rules = [
         _rule_keywords(title, body),
-        _rule_suspicious_links(body),
-        _rule_external_links(body),
+        _rule_suspicious_links(combined_links),
+        _rule_external_links(combined_links),
         _rule_account_age(account_created_utc),
         _rule_karma_shape(link_karma, comment_karma),
         _rule_bot_username(author_name),

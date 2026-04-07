@@ -31,6 +31,7 @@ ACTION_MODE: str = _optional("ACTION_MODE", "none")
 
 FLAG_FLAIR_TEXT: str = _optional("FLAG_FLAIR_TEXT", "⚠️ Possible Scam")
 FLAG_FLAIR_CSS: str = _optional("FLAG_FLAIR_CSS", "possible-scam")
+FLAG_FLAIR_TEMPLATE_ID: str = _optional("FLAG_FLAIR_TEMPLATE_ID", "")
 
 DB_PATH: str = _optional("DB_PATH", "./sentry.db")
 
