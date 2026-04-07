@@ -33,11 +33,12 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Multi-tenant config: per-user tenant with DB-backed config (score threshold, subreddits, webhook)
 - Tenant auto-provisioning via `getOrCreateTenant()` on first authenticated request
 
-### React Dashboard (artifacts/modarchitect/)
+### React Dashboard — PanoptesAI (artifacts/modarchitect/)
 - Vite + React + Tailwind CSS + shadcn/ui
 - Clerk auth with landing page, sign-in/sign-up
 - Pages: Flagged Queue (/dashboard), Analytics (/analytics), Configuration (/config)
 - Dark theme with sidebar navigation
+- Brand: PanoptesAI with blue eye-in-circle logo (public/logo.png)
 
 ### Database Schema (lib/db/)
 - `tenants` table: id, clerk_user_id (unique), name, created_at

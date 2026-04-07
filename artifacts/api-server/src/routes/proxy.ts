@@ -435,7 +435,7 @@ router.post("/config/test-webhook", async (req, res): Promise<void> => {
     const response = await fetch(config.webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "test", message: "MODArchitect webhook test" }),
+      body: JSON.stringify({ type: "test", message: "PanoptesAI webhook test" }),
     });
 
     if (response.ok) {

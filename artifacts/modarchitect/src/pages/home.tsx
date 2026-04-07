@@ -1,15 +1,17 @@
 import { Link } from "wouter";
-import { Shield, Activity, Settings, ArrowRight, Lock, Zap, BarChart3 } from "lucide-react";
+import { Activity, Settings, ArrowRight, Lock, Zap, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-card/50">
-        <div className="flex items-center">
-          <Shield className="w-6 h-6 text-primary mr-2" />
+        <div className="flex items-center gap-2">
+          <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-7 h-7 object-contain" />
           <h1 className="font-bold text-lg tracking-tight">
-            <span className="text-primary">MOD</span>Architect
+            <span className="text-primary">Panoptes</span>AI
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -37,7 +39,7 @@ export default function Home() {
           </h2>
 
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            MODArchitect monitors your subreddits in real time, scoring every post and comment
+            PanoptesAI monitors your subreddits in real time, scoring every post and comment
             for scam risk using advanced rule-based signals. Review flagged content, tune thresholds,
             and keep your community safe.
           </p>

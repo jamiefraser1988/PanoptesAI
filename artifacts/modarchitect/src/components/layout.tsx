@@ -1,9 +1,11 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Shield, Activity, Settings, LogOut } from "lucide-react";
+import { Activity, Settings, LogOut, Shield } from "lucide-react";
 import { useHealthCheck, getHealthCheckQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { useUser, useClerk } from "@clerk/react";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function UserSection() {
   const { user, isLoaded } = useUser();
@@ -50,10 +52,10 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
       <aside className="w-64 border-r border-border bg-sidebar flex flex-col shrink-0">
-        <div className="h-16 flex items-center px-6 border-b border-border">
-          <Shield className="w-6 h-6 text-primary mr-2" />
+        <div className="h-16 flex items-center px-6 border-b border-border gap-2">
+          <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-7 h-7 object-contain" />
           <h1 className="font-bold text-lg tracking-tight text-foreground">
-            <span className="text-primary">MOD</span>Architect
+            <span className="text-primary">Panoptes</span>AI
           </h1>
         </div>
         <nav className="flex-1 py-4 flex flex-col gap-1 px-3">
