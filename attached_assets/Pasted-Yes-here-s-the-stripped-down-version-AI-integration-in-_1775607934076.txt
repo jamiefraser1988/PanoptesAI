@@ -1,0 +1,236 @@
+Yes — here’s the stripped-down version.
+
+## AI integration in the project
+
+### Core structure
+
+The project was split into two layers:
+
+**Layer 1: rule-based detection**
+
+* keyword checks
+* account age checks
+* link/domain checks
+* behaviour scoring
+* explainable reasons
+
+**Layer 2: AI enhancement**
+
+* scam intent classification
+* bot-like language detection
+* similarity detection for rewritten scam posts
+* behaviour summarisation for moderators
+* improved risk scoring using language/context
+
+### Intended AI uses
+
+**1. Scam intent classification**
+
+* classify whether a post is likely a scam
+* detect intent such as moving users off-platform, urgency, fake support, investment bait
+
+**2. Bot-language detection**
+
+* detect repeated or templated language
+* identify unnatural phrasing patterns
+
+**3. Similarity detection**
+
+* compare new posts with previously flagged posts
+* catch slightly rewritten scam messages
+
+**4. Moderator summarisation**
+
+* convert raw signals into a short moderation summary
+* example output: repeated investment-related content across multiple subreddits with external links
+
+**5. Hybrid scoring**
+
+* combine rule-based score with AI score
+* use AI as an additional signal rather than the only signal
+
+### Why AI was positioned later rather than first
+
+* the base system can work without AI
+* AI can be added only for suspicious posts to reduce cost
+* rule-based scoring gives a baseline for comparison
+* explainable signals remain available even when AI is added
+
+### Suggested rollout
+
+**Phase 1**
+
+* rule-based only
+
+**Phase 2**
+
+* run AI only on posts that already look suspicious
+
+**Phase 3**
+
+* include AI as part of the main scoring pipeline
+
+---
+
+## Drop-in Python script for AI scam classification
+
+This uses the official OpenAI Python SDK. OpenAI’s current Python docs describe the **Responses API** as the primary API, and the SDK reads the API key from the `OPENAI_API_KEY` environment variable. Install with `pip install openai`. ([OpenAI Developers][1])
+
+### Install
+
+```bash
+pip install openai
+```
+
+### Set your API key in PowerShell
+
+```powershell
+setx OPENAI_API_KEY "your_api_key_here"
+```
+
+Open a new terminal after running that. The SDK can read the key from the environment automatically. ([OpenAI Developers][2])
+
+### `ai_classifier.py`
+
+```python
+import json
+from typing import Any
+from openai import OpenAI
+
+client = OpenAI()
+
+SYSTEM_PROMPT = """
+You are a scam and bot detection assistant for Reddit moderation.
+
+Return only valid JSON with this shape:
+{
+  "scam_probability": 0-100,
+  "bot_probability": 0-100,
+  "action": "allow" | "review" | "flag",
+  "summary": "short explanation",
+  "signals": [
+    "signal 1",
+    "signal 2"
+  ]
+}
+
+Rules:
+- Be conservative.
+- Focus on scam intent, off-platform redirection, urgency, impersonation, fake support, investment bait, suspicious link behaviour, and templated bot-like language.
+- Do not include markdown.
+- Do not include any text outside the JSON object.
+"""
+
+def classify_post(
+    title: str,
+    body: str,
+    author: str,
+    account_age_days: int | None = None,
+    link_karma: int | None = None,
+    comment_karma: int | None = None,
+    prior_flags: int | None = None,
+) -> dict[str, Any]:
+    user_context = {
+        "author": author,
+        "account_age_days": account_age_days,
+        "link_karma": link_karma,
+        "comment_karma": comment_karma,
+        "prior_flags": prior_flags,
+    }
+
+    input_text = f"""
+Post title:
+{title}
+
+Post body:
+{body}
+
+Author context:
+{json.dumps(user_context, ensure_ascii=False)}
+""".strip()
+
+    response = client.responses.create(
+        model="gpt-5.4",
+        instructions=SYSTEM_PROMPT,
+        input=input_text,
+    )
+
+    raw = response.output_text.strip()
+
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as ex:
+        raise ValueError(f"Model did not return valid JSON. Raw output: {raw}") from ex
+
+    required_keys = {
+        "scam_probability",
+        "bot_probability",
+        "action",
+        "summary",
+        "signals",
+    }
+
+    missing = required_keys - set(result.keys())
+    if missing:
+        raise ValueError(f"Missing keys in model output: {sorted(missing)}")
+
+    return result
+
+
+if __name__ == "__main__":
+    example = classify_post(
+        title="Need help recovering my wallet urgently",
+        body="Message me on Telegram, support can fix it fast. Limited time before funds are gone.",
+        author="helpdesk9482",
+        account_age_days=2,
+        link_karma=12,
+        comment_karma=0,
+        prior_flags=1,
+    )
+
+    print(json.dumps(example, indent=2))
+```
+
+---
+
+## Example of using it inside your scorer
+
+```python
+from ai_classifier import classify_post
+
+def get_final_score(rule_score: int, title: str, body: str, author: str, account_age_days: int):
+    ai = classify_post(
+        title=title,
+        body=body,
+        author=author,
+        account_age_days=account_age_days,
+    )
+
+    ai_score = int(ai["scam_probability"])
+    final_score = round((rule_score * 0.6) + (ai_score * 0.4))
+
+    return {
+        "final_score": final_score,
+        "rule_score": rule_score,
+        "ai_score": ai_score,
+        "action": ai["action"],
+        "summary": ai["summary"],
+        "signals": ai["signals"],
+    }
+```
+
+## Cheap usage pattern
+
+Only call the AI classifier when the rule-based score is already moderately suspicious, for example:
+
+```python
+if rule_score >= 40:
+    ai_result = classify_post(...)
+```
+
+That keeps usage targeted.
+
+If you want, I can turn this into a file that plugs directly into the `sentry/` project structure we mapped out earlier.
+
+[1]: https://developers.openai.com/api/reference/python/?utm_source=chatgpt.com "OpenAI Python API library"
+[2]: https://developers.openai.com/api/docs/quickstart?utm_source=chatgpt.com "Developer quickstart | OpenAI API"
