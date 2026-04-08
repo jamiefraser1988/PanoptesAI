@@ -45,3 +45,7 @@ NOTIFY_THRESHOLD: int = int(_optional("NOTIFY_THRESHOLD", str(RISK_THRESHOLD)))
 
 HISTORY_POSTS_LIMIT: int = int(_optional("HISTORY_POSTS_LIMIT", "10"))
 SIMILARITY_THRESHOLD: float = float(_optional("SIMILARITY_THRESHOLD", "0.6"))
+
+AI_ENABLED: bool = _optional("AI_ENABLED", "false").strip().lower() not in ("false", "0", "no")
+AI_SCORE_THRESHOLD: int = max(0, min(100, int(_optional("AI_SCORE_THRESHOLD", "40"))))
+AI_WEIGHT: float = max(0.0, min(1.0, float(_optional("AI_WEIGHT", "0.4"))))

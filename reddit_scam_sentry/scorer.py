@@ -159,6 +159,7 @@ def compute_score(
     recent_flagged_bodies: list[str] | None = None,
     current_subreddit: str = "",
     author_feedback: dict[str, int] | None = None,
+    ai_result: dict | None = None,
 ) -> tuple[int, list[str]]:
     combined_links = body + " " + url
     rules: list[tuple[int, str | None]] = [
@@ -191,5 +192,28 @@ def compute_score(
             total += pts
             reasons.append(reason)
 
-    final = max(0, min(100, total))
+    rule_score = max(0, min(100, total))
+
+    if ai_result is not None:
+        ai_weight = _config.AI_WEIGHT
+        rule_weight = 1.0 - ai_weight
+
+        ai_raw = max(ai_result.get("scam_probability", 0.0), ai_result.get("bot_probability", 0.0))
+        ai_score_pts = int(round(ai_raw * 100))
+
+        final = int(round(rule_weight * rule_score + ai_weight * ai_score_pts))
+        final = max(0, min(100, final))
+
+        for signal in ai_result.get("signals", []):
+            if signal:
+                reasons.append(f"AI: {signal}")
+
+        action = ai_result.get("action", "")
+        if action == "remove":
+            reasons.append("AI: Recommended removal")
+        elif action == "review":
+            reasons.append("AI: Flagged for review")
+    else:
+        final = rule_score
+
     return final, reasons

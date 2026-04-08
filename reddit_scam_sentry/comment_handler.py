@@ -21,6 +21,7 @@ from reddit_scam_sentry.store import (
     save_comment_decision,
 )
 from reddit_scam_sentry.utils import exponential_backoff, truncate
+from reddit_scam_sentry.ai_classifier import classify as ai_classify
 
 logger = logging.getLogger("sentry.comments")
 
@@ -74,6 +75,26 @@ async def process_comment(
 
     body = getattr(comment, "body", "") or ""
 
+    rule_score, _ = compute_score(
+        title="",
+        body=body,
+        url="",
+        author_name=author.name,
+        account_created_utc=author_info["created_utc"],
+        link_karma=author_info["link_karma"],
+        comment_karma=author_info["comment_karma"],
+    )
+
+    ai_result = None
+    if config.AI_ENABLED and rule_score >= config.AI_SCORE_THRESHOLD:
+        logger.debug(
+            "Sending comment %s to AI classifier (rule_score=%d)", comment.id, rule_score
+        )
+        ai_result = await ai_classify(
+            body=body,
+            author_name=author.name,
+        )
+
     score, reasons = compute_score(
         title="",
         body=body,
@@ -82,6 +103,7 @@ async def process_comment(
         account_created_utc=author_info["created_utc"],
         link_karma=author_info["link_karma"],
         comment_karma=author_info["comment_karma"],
+        ai_result=ai_result,
     )
 
     flagged = score >= config.RISK_THRESHOLD
@@ -117,6 +139,20 @@ async def process_comment(
             reasons_str,
         )
 
+    ai_score = None
+    ai_summary = None
+    ai_signals = None
+    ai_action = None
+    if ai_result is not None:
+        ai_raw = max(
+            ai_result.get("scam_probability", 0.0),
+            ai_result.get("bot_probability", 0.0),
+        )
+        ai_score = int(round(ai_raw * 100))
+        ai_summary = ai_result.get("summary")
+        ai_signals = ai_result.get("signals")
+        ai_action = ai_result.get("action")
+
     await save_comment_decision(
         db,
         comment_id=comment.id,
@@ -127,6 +163,10 @@ async def process_comment(
         score=score,
         reasons=reasons,
         flagged=flagged,
+        ai_score=ai_score,
+        ai_summary=ai_summary,
+        ai_signals=ai_signals,
+        ai_action=ai_action,
     )
 
     if flagged:

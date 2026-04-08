@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, ExternalLink, Search, Filter, ArrowDownUp } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, Search, Filter, ArrowDownUp, Bot, Sparkles } from "lucide-react";
 import { SiReddit } from "react-icons/si";
 
 type ContentType = "all" | "posts" | "comments";
@@ -23,6 +23,10 @@ interface DecisionItem {
   decided_at: number;
   feedback?: string | null;
   content_type?: string;
+  ai_score?: number | null;
+  ai_summary?: string | null;
+  ai_signals?: string[] | null;
+  ai_action?: string | null;
 }
 
 export default function Queue() {
@@ -98,6 +102,13 @@ export default function Queue() {
     if (score >= 70) return "text-red-500 bg-red-500/10 border-red-500/20";
     if (score >= 40) return "text-amber-500 bg-amber-500/10 border-amber-500/20";
     return "text-green-500 bg-green-500/10 border-green-500/20";
+  };
+
+  const getAiActionColor = (action: string | null | undefined) => {
+    if (action === "remove") return "text-red-500 bg-red-500/10 border-red-500/20";
+    if (action === "review") return "text-amber-500 bg-amber-500/10 border-amber-500/20";
+    if (action === "approve") return "text-green-500 bg-green-500/10 border-green-500/20";
+    return "text-muted-foreground bg-muted/10 border-border/30";
   };
 
   const displayedItems = accumulatedItems.length > 0 ? accumulatedItems : (data?.items as DecisionItem[] ?? []);
@@ -186,6 +197,10 @@ export default function Queue() {
           <>
             {displayedItems.map((item) => {
               const effectiveFeedback = localFeedback[item.post_id] ?? item.feedback;
+              const hasAI = item.ai_score != null || item.ai_summary != null;
+              const ruleReasons = item.reasons.filter((r) => !r.startsWith("AI:"));
+              const aiReasonSignals = (item.ai_signals && item.ai_signals.length > 0) ? item.ai_signals : [];
+
               return (
                 <div key={item.id} className="bg-card border border-border rounded-lg p-4 transition-all hover:bg-accent/5" data-testid={`card-decision-${item.id}`}>
                   <div className="flex justify-between items-start gap-4">
@@ -194,6 +209,12 @@ export default function Queue() {
                         <Badge variant="outline" className={`font-mono text-xs ${getScoreColor(item.score)}`}>
                           {item.score} RISK
                         </Badge>
+                        {hasAI && item.ai_score != null && (
+                          <Badge variant="outline" className={`font-mono text-xs flex items-center gap-1 ${getScoreColor(item.ai_score)}`}>
+                            <Bot className="w-3 h-3" />
+                            {item.ai_score} AI
+                          </Badge>
+                        )}
                         <Badge variant="secondary" className="text-xs capitalize">
                           {item.content_type || "post"}
                         </Badge>
@@ -208,13 +229,46 @@ export default function Queue() {
                       <h3 className="font-medium text-foreground text-sm line-clamp-2 leading-relaxed mb-3">
                         {item.title}
                       </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {item.reasons.map((reason, idx) => (
-                          <Badge key={idx} variant="outline" className="text-[10px] text-muted-foreground border-border/50 bg-background/50">
-                            {reason}
-                          </Badge>
-                        ))}
-                      </div>
+
+                      {ruleReasons.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {ruleReasons.map((reason, idx) => (
+                            <Badge key={idx} variant="outline" className="text-[10px] text-muted-foreground border-border/50 bg-background/50">
+                              {reason}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {hasAI && (
+                        <div className="mt-3 rounded-md border border-purple-500/20 bg-purple-500/5 p-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                            <span className="text-xs font-semibold text-purple-400">AI Analysis</span>
+                            {item.ai_action && (
+                              <Badge variant="outline" className={`ml-auto text-[10px] ${getAiActionColor(item.ai_action)}`}>
+                                {item.ai_action}
+                              </Badge>
+                            )}
+                          </div>
+                          {item.ai_summary && (
+                            <p className="text-xs text-muted-foreground leading-relaxed">{item.ai_summary}</p>
+                          )}
+                          {aiReasonSignals.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {aiReasonSignals.map((signal, idx) => (
+                                <Badge
+                                  key={idx}
+                                  variant="outline"
+                                  className="text-[10px] text-purple-300 border-purple-500/30 bg-purple-500/10"
+                                >
+                                  {signal}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col items-end gap-3 shrink-0">

@@ -29,6 +29,10 @@ class DecisionOut(BaseModel):
     flagged: bool
     decided_at: float
     feedback: Optional[str] = None
+    ai_score: Optional[int] = None
+    ai_summary: Optional[str] = None
+    ai_signals: Optional[list[str]] = None
+    ai_action: Optional[str] = None
 
     @property
     def reddit_url(self) -> str:

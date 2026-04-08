@@ -30,11 +30,18 @@ async def init_db(db: aiosqlite.Connection) -> None:
         )
         """
     )
-    try:
-        await db.execute("ALTER TABLE decisions ADD COLUMN body TEXT NOT NULL DEFAULT ''")
-        await db.commit()
-    except Exception:
-        pass
+    for migration in [
+        "ALTER TABLE decisions ADD COLUMN body TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE decisions ADD COLUMN ai_score INTEGER",
+        "ALTER TABLE decisions ADD COLUMN ai_summary TEXT",
+        "ALTER TABLE decisions ADD COLUMN ai_signals TEXT",
+        "ALTER TABLE decisions ADD COLUMN ai_action TEXT",
+    ]:
+        try:
+            await db.execute(migration)
+            await db.commit()
+        except Exception:
+            pass
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS comment_decisions (
@@ -51,6 +58,17 @@ async def init_db(db: aiosqlite.Connection) -> None:
         )
         """
     )
+    for migration in [
+        "ALTER TABLE comment_decisions ADD COLUMN ai_score INTEGER",
+        "ALTER TABLE comment_decisions ADD COLUMN ai_summary TEXT",
+        "ALTER TABLE comment_decisions ADD COLUMN ai_signals TEXT",
+        "ALTER TABLE comment_decisions ADD COLUMN ai_action TEXT",
+    ]:
+        try:
+            await db.execute(migration)
+            await db.commit()
+        except Exception:
+            pass
     await db.commit()
 
 
@@ -93,13 +111,18 @@ async def save_decision(
     score: int,
     reasons: list[str],
     flagged: bool,
+    ai_score: int | None = None,
+    ai_summary: str | None = None,
+    ai_signals: list[str] | None = None,
+    ai_action: str | None = None,
 ) -> None:
     now = time.time()
     await db.execute(
         """
         INSERT OR IGNORE INTO decisions
-            (post_id, subreddit, author, title, body, score, reasons, flagged, decided_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (post_id, subreddit, author, title, body, score, reasons, flagged, decided_at,
+             ai_score, ai_summary, ai_signals, ai_action)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             post_id,
@@ -111,6 +134,10 @@ async def save_decision(
             json.dumps(reasons),
             int(flagged),
             now,
+            ai_score,
+            ai_summary,
+            json.dumps(ai_signals) if ai_signals is not None else None,
+            ai_action,
         ),
     )
     await db.commit()
@@ -201,14 +228,19 @@ async def save_comment_decision(
     score: int,
     reasons: list[str],
     flagged: bool,
+    ai_score: int | None = None,
+    ai_summary: str | None = None,
+    ai_signals: list[str] | None = None,
+    ai_action: str | None = None,
 ) -> None:
     now = time.time()
     await db.execute(
         """
         INSERT OR IGNORE INTO comment_decisions
             (comment_id, post_id, subreddit, author, body_snippet,
-             score, reasons, flagged, decided_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             score, reasons, flagged, decided_at,
+             ai_score, ai_summary, ai_signals, ai_action)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             comment_id,
@@ -220,6 +252,10 @@ async def save_comment_decision(
             json.dumps(reasons),
             int(flagged),
             now,
+            ai_score,
+            ai_summary,
+            json.dumps(ai_signals) if ai_signals is not None else None,
+            ai_action,
         ),
     )
     await db.commit()

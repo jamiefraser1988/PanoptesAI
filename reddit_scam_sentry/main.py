@@ -29,6 +29,7 @@ from reddit_scam_sentry.utils import exponential_backoff, truncate
 from reddit_scam_sentry.comment_handler import stream_comments
 from reddit_scam_sentry.history import fetch_recent_posts
 from reddit_scam_sentry import notifier
+from reddit_scam_sentry.ai_classifier import classify as ai_classify
 
 logger = logging.getLogger("sentry.main")
 
@@ -89,6 +90,33 @@ async def process_submission(
 
     subreddit_name = submission.subreddit.display_name if submission.subreddit else "unknown"
 
+    author_feedback = await get_author_feedback_stats(db, author.name)
+
+    rule_score, _ = compute_score(
+        title=post_title,
+        body=post_body,
+        url=post_url,
+        author_name=author.name,
+        account_created_utc=author_info["created_utc"],
+        link_karma=author_info["link_karma"],
+        comment_karma=author_info["comment_karma"],
+        author_recent_posts=author_recent_posts,
+        recent_flagged_bodies=recent_flagged_bodies,
+        current_subreddit=subreddit_name,
+        author_feedback=author_feedback,
+    )
+
+    ai_result = None
+    if config.AI_ENABLED and rule_score >= config.AI_SCORE_THRESHOLD:
+        logger.debug(
+            "Sending post %s to AI classifier (rule_score=%d)", submission.id, rule_score
+        )
+        ai_result = await ai_classify(
+            title=post_title,
+            body=post_body,
+            author_name=author.name,
+        )
+
     score, reasons = compute_score(
         title=post_title,
         body=post_body,
@@ -100,7 +128,8 @@ async def process_submission(
         author_recent_posts=author_recent_posts,
         recent_flagged_bodies=recent_flagged_bodies,
         current_subreddit=subreddit_name,
-        author_feedback=await get_author_feedback_stats(db, author.name),
+        author_feedback=author_feedback,
+        ai_result=ai_result,
     )
 
     flagged = score >= config.RISK_THRESHOLD
@@ -127,6 +156,20 @@ async def process_submission(
             reasons_str,
         )
 
+    ai_score = None
+    ai_summary = None
+    ai_signals = None
+    ai_action = None
+    if ai_result is not None:
+        ai_raw = max(
+            ai_result.get("scam_probability", 0.0),
+            ai_result.get("bot_probability", 0.0),
+        )
+        ai_score = int(round(ai_raw * 100))
+        ai_summary = ai_result.get("summary")
+        ai_signals = ai_result.get("signals")
+        ai_action = ai_result.get("action")
+
     await save_decision(
         db,
         post_id=submission.id,
@@ -137,6 +180,10 @@ async def process_submission(
         score=score,
         reasons=reasons,
         flagged=flagged,
+        ai_score=ai_score,
+        ai_summary=ai_summary,
+        ai_signals=ai_signals,
+        ai_action=ai_action,
     )
 
     if flagged:

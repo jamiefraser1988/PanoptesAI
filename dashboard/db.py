@@ -57,8 +57,20 @@ async def _migrate(db: aiosqlite.Connection) -> None:
         """
     )
     existing_cols = await _get_columns(db, "decisions")
-    if "feedback" not in existing_cols:
-        await db.execute("ALTER TABLE decisions ADD COLUMN feedback TEXT")
+    optional_cols = {
+        "feedback": "ALTER TABLE decisions ADD COLUMN feedback TEXT",
+        "body": "ALTER TABLE decisions ADD COLUMN body TEXT NOT NULL DEFAULT ''",
+        "ai_score": "ALTER TABLE decisions ADD COLUMN ai_score INTEGER",
+        "ai_summary": "ALTER TABLE decisions ADD COLUMN ai_summary TEXT",
+        "ai_signals": "ALTER TABLE decisions ADD COLUMN ai_signals TEXT",
+        "ai_action": "ALTER TABLE decisions ADD COLUMN ai_action TEXT",
+    }
+    for col, stmt in optional_cols.items():
+        if col not in existing_cols:
+            try:
+                await db.execute(stmt)
+            except Exception:
+                pass
     await db.commit()
 
 
@@ -72,4 +84,11 @@ def _row_to_decision(row: aiosqlite.Row) -> dict:
     d = dict(row)
     d["reasons"] = json.loads(d["reasons"]) if d["reasons"] else []
     d["flagged"] = bool(d["flagged"])
+    if "ai_signals" in d and d["ai_signals"]:
+        try:
+            d["ai_signals"] = json.loads(d["ai_signals"])
+        except (json.JSONDecodeError, TypeError):
+            d["ai_signals"] = []
+    elif "ai_signals" in d:
+        d["ai_signals"] = None
     return d

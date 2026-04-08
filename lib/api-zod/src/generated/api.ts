@@ -48,6 +48,10 @@ export const ListDecisionsResponse = zod.object({
       decided_at: zod.number(),
       feedback: zod.string().nullish(),
       content_type: zod.enum(["post", "comment"]).optional(),
+      ai_score: zod.number().nullish(),
+      ai_summary: zod.string().nullish(),
+      ai_signals: zod.array(zod.string()).nullish(),
+      ai_action: zod.string().nullish(),
     }),
   ),
   total: zod.number(),
@@ -78,6 +82,10 @@ export const SubmitFeedbackResponse = zod.object({
   decided_at: zod.number(),
   feedback: zod.string().nullish(),
   content_type: zod.enum(["post", "comment"]).optional(),
+  ai_score: zod.number().nullish(),
+  ai_summary: zod.string().nullish(),
+  ai_signals: zod.array(zod.string()).nullish(),
+  ai_action: zod.string().nullish(),
 });
 
 /**
