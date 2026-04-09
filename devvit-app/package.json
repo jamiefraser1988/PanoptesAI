@@ -1,0 +1,16 @@
+{
+  "name": "panoptes-ai-devvit",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "devvit playtest"
+  },
+  "dependencies": {
+    "@devvit/public-api": "0.11.*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
