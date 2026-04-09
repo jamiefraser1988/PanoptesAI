@@ -19,8 +19,16 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ## Architecture
 
-### Python Bot (reddit_scam_sentry/)
-- Real-time Reddit streaming via asyncpraw
+### Devvit Reddit App (devvit-app/)
+- Reddit Developer Platform (Devvit) app — runs on Reddit's servers
+- Triggers on PostSubmit and CommentSubmit events
+- Sends content to PanoptesAI API for scoring via HTTP
+- Takes mod actions (report/remove) based on score and settings
+- Per-subreddit settings: API URL, API key, risk threshold, action mode
+- Deploy: `cd devvit-app && npm install && devvit login && devvit upload`
+
+### Python Bot — Legacy (reddit_scam_sentry/)
+- Real-time Reddit streaming via asyncpraw (requires pre-Nov 2025 OAuth credentials)
 - Scam/bot risk scoring (0-100) with 10+ rule-based signals
 - SQLite persistence for decisions and feedback
 - FastAPI dashboard backend on port 8001
@@ -28,7 +36,9 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ### TypeScript API Server (artifacts/api-server/)
 - Express 5 on port 8080
-- Clerk middleware protects all `/api` routes (except `/api/healthz`)
+- Clerk middleware protects all `/api` routes (except `/api/healthz` and `/api/devvit/*`)
+- `/api/devvit/scan` — scoring endpoint for Devvit app (API key auth, no Clerk)
+- `/api/devvit/health` — health check for Devvit app
 - Proxies to Python FastAPI backend for decisions/stats/feedback
 - Multi-tenant config: per-user tenant with DB-backed config (score threshold, subreddits, webhook)
 - Tenant auto-provisioning via `getOrCreateTenant()` on first authenticated request
@@ -53,6 +63,10 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 - Python tests: `PYTHONPATH=... python -m pytest tests/ -x -q` (269 tests)
+
+## GitHub Repository
+
+https://github.com/jamiefraser1988/PanoptesAI
 
 ## Environment Variables
 
