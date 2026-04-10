@@ -48,8 +48,8 @@ function lbKey(subredditId: string): string {
   return `panoptes:game:lb:${subredditId}`;
 }
 
-function bestKey(userId: string): string {
-  return `panoptes:game:best:${userId}`;
+function bestKey(userId: string, subredditId: string): string {
+  return `panoptes:game:best:${subredditId}:${userId}`;
 }
 
 Devvit.addCustomPostType({
@@ -120,9 +120,9 @@ Devvit.addCustomPostType({
         const sid = context.subredditId;
         if (uid && sid) {
           const uname = (await context.reddit.getUserById(uid))?.username ?? uid;
-          const currentBest = await context.redis.get(bestKey(uid));
+          const currentBest = await context.redis.get(bestKey(uid, sid));
           if (!currentBest || currentScore > parseInt(currentBest, 10)) {
-            await context.redis.set(bestKey(uid), currentScore.toString());
+            await context.redis.set(bestKey(uid, sid), currentScore.toString());
             setBest(currentScore);
           } else {
             setBest(parseInt(currentBest, 10));
@@ -198,8 +198,8 @@ Devvit.addCustomPostType({
         setLbStr(JSON.stringify(entries.map((e) => ({ name: e.member, score: e.score }))));
       }
       const uid = context.userId;
-      if (uid) {
-        const b = await context.redis.get(bestKey(uid));
+      if (uid && sid) {
+        const b = await context.redis.get(bestKey(uid, sid));
         if (b) setBest(parseInt(b, 10));
       }
       setPhase("leaderboard");
