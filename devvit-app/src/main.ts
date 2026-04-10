@@ -1,4 +1,4 @@
-import { Devvit, TriggerContext } from "@devvit/public-api";
+import { Devvit, SettingScope, TriggerContext } from "@devvit/public-api";
 
 Devvit.configure({
   redditAPI: true,
@@ -11,23 +11,23 @@ Devvit.addSettings([
     name: "panoptesApiUrl",
     label: "PanoptesAI API URL",
     type: "string",
-    scope: "installation",
-    defaultValue: "",
-    helpText: "The full URL of your PanoptesAI API server (e.g. https://your-app.replit.app)",
+    scope: SettingScope.Installation,
+    defaultValue: "https://workspace-jfwizkid.replit.app",
+    helpText: "The full URL of your PanoptesAI API server",
   },
   {
     name: "panoptesApiKey",
-    label: "PanoptesAI API Key",
+    label: "PanoptesAI API Key (optional)",
     type: "string",
-    isSecret: true,
-    scope: "installation",
-    helpText: "API key for authenticating with PanoptesAI (from your dashboard settings)",
+    scope: SettingScope.Installation,
+    defaultValue: "",
+    helpText: "Optional API key for authenticating with PanoptesAI",
   },
   {
     name: "riskThreshold",
     label: "Risk Score Threshold (0-100)",
     type: "number",
-    scope: "installation",
+    scope: SettingScope.Installation,
     defaultValue: 70,
     helpText: "Posts/comments scoring at or above this will trigger mod actions",
   },
@@ -40,7 +40,7 @@ Devvit.addSettings([
       { label: "Report to mod queue", value: "report" },
       { label: "Remove automatically", value: "remove" },
     ],
-    scope: "installation",
+    scope: SettingScope.Installation,
     defaultValue: ["log"],
     helpText: "What to do when a post/comment exceeds the risk threshold",
   },
