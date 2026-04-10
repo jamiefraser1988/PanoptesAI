@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "M91IQlFnxR4dEPn3fbbe1"
+uri = "file://WORKLOG.md"
+type = "text"
+title = "PanoptesAI Work Tracker"
