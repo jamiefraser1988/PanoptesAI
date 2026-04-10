@@ -46,13 +46,23 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ### React Dashboard — PanoptesAI (artifacts/modarchitect/)
 - Vite + React + Tailwind CSS + shadcn/ui
 - Clerk auth with landing page, sign-in/sign-up
-- Pages: Flagged Queue (/dashboard), Analytics (/analytics), Configuration (/config)
+- Pages: Flagged Queue (/dashboard), Analytics (/analytics), Mod Action Log (/mod-log), Configuration (/config)
 - Dark theme with sidebar navigation
 - Brand: PanoptesAI with blue eye-in-circle logo (public/logo.png)
+- QoL Features:
+  - **Bulk Actions**: Checkbox selection, select all, bulk approve/flag in queue
+  - **Keyboard Shortcuts**: j/k navigate, a=safe, s=scam, x=select, Esc=clear, ?=help
+  - **User Reputation Panel**: Click author name → side panel with history, avg score, active subreddits
+  - **Allowlist/Blocklist**: Trusted/blocked user management in config (persisted in DB)
+  - **Smart Rule Builder**: Custom automation rules (field + operator + value → action) in config
+  - **Mod Action Log**: Audit trail page showing all moderation actions (auto-logged on feedback)
+  - **Notification Bell**: Header bell icon showing recent high-risk (70+) detections
+  - **Threat Intelligence**: Cross-subreddit threat map + threat type distribution in analytics
 
 ### Database Schema (lib/db/)
 - `tenants` table: id, clerk_user_id (unique), name, created_at
-- `tenant_configs` table: id, tenant_id (FK unique), score_threshold, watched_subreddits (jsonb), webhook_url, webhook_type, action_mode, updated_at
+- `tenant_configs` table: id, tenant_id (FK unique), score_threshold, watched_subreddits (jsonb), webhook_url, webhook_type, action_mode, allowed_users (jsonb), blocked_users (jsonb), custom_rules (jsonb), updated_at
+- `mod_actions` table: id, tenant_id (FK), action, target_id, target_type, author, subreddit, details (jsonb), created_at
 - Drizzle ORM re-exports: `eq`, `and`, `or`, `desc`, `asc`, `sql` from `@workspace/db`
 
 ## Key Commands

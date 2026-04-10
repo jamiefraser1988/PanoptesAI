@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Queue from "@/pages/queue";
 import Analytics from "@/pages/analytics";
 import Config from "@/pages/config";
+import ModLog from "@/pages/mod-log";
 import Home from "@/pages/home";
 import Layout from "@/components/layout";
 
@@ -48,6 +49,7 @@ function AuthenticatedDashboard() {
           <Switch>
             <Route path="/dashboard" component={Queue} />
             <Route path="/analytics" component={Analytics} />
+            <Route path="/mod-log" component={ModLog} />
             <Route path="/config" component={Config} />
             <Route component={NotFound} />
           </Switch>
@@ -111,6 +113,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/sign-up/*?" component={SignUpPage} />
             <Route path="/dashboard" component={AuthenticatedDashboard} />
             <Route path="/analytics" component={AuthenticatedDashboard} />
+            <Route path="/mod-log" component={AuthenticatedDashboard} />
             <Route path="/config" component={AuthenticatedDashboard} />
             <Route component={NotFound} />
           </Switch>
@@ -135,6 +138,7 @@ function App() {
               <Switch>
                 <Route path="/" component={Queue} />
                 <Route path="/analytics" component={Analytics} />
+                <Route path="/mod-log" component={ModLog} />
                 <Route path="/config" component={Config} />
                 <Route component={NotFound} />
               </Switch>

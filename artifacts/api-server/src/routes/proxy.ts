@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import { logger } from "../lib/logger";
-import { db, eq, tenantsTable, tenantConfigsTable } from "@workspace/db";
+import { db, eq, desc, and, sql, tenantsTable, tenantConfigsTable, modActionsTable } from "@workspace/db";
 import {
   ListDecisionsQueryParams,
   ListDecisionsResponse,
@@ -134,6 +134,22 @@ async function getTenantConfig(tenantId: number) {
     .where(eq(tenantConfigsTable.tenantId, tenantId))
     .limit(1);
   return fallback;
+}
+
+async function logModAction(tenantId: number, action: string, targetId: string, targetType: string, author?: string, subreddit?: string, details?: Record<string, unknown>) {
+  try {
+    await db.insert(modActionsTable).values({
+      tenantId,
+      action,
+      targetId,
+      targetType,
+      author: author ?? null,
+      subreddit: subreddit ?? null,
+      details: details ?? null,
+    });
+  } catch (err) {
+    logger.error({ err }, "Failed to log mod action");
+  }
 }
 
 router.get("/decisions", async (req, res): Promise<void> => {
@@ -322,6 +338,25 @@ router.post("/decisions/:postId/feedback", async (req, res): Promise<void> => {
 
     const data = await response.json() as unknown;
     const result = SubmitFeedbackResponse.parse({ ...(data as object), content_type: "post" });
+
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (userId) {
+      try {
+        const tenant = await getOrCreateTenant(userId);
+        await logModAction(
+          tenant.id,
+          body.data.verdict === "true_positive" ? "confirm_scam" : body.data.verdict === "false_positive" ? "mark_safe" : "mark_unclear",
+          paramsResult.data.postId,
+          "post",
+          undefined,
+          undefined,
+          { verdict: body.data.verdict }
+        );
+      } catch {
+      }
+    }
+
     res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to submit feedback to FastAPI");
@@ -403,7 +438,15 @@ router.get("/config", async (req, res): Promise<void> => {
       webhook_url: config?.webhookUrl ?? null,
       action_mode: config?.actionMode === "active" ? "active" : "monitor",
     });
-    res.json(result);
+
+    const extended = {
+      ...result,
+      allowed_users: (config?.allowedUsers as string[]) ?? [],
+      blocked_users: (config?.blockedUsers as string[]) ?? [],
+      custom_rules: (config?.customRules as Array<Record<string, unknown>>) ?? [],
+    };
+
+    res.json(extended);
   } catch (err) {
     logger.error({ err }, "Failed to read config");
     res.status(500).json({ error: "Failed to read configuration" });
@@ -427,6 +470,11 @@ router.post("/config", async (req, res): Promise<void> => {
 
     const tenant = await getOrCreateTenant(userId);
 
+    const rawBody = req.body as Record<string, unknown>;
+    const allowedUsers = Array.isArray(rawBody.allowed_users) ? rawBody.allowed_users as string[] : [];
+    const blockedUsers = Array.isArray(rawBody.blocked_users) ? rawBody.blocked_users as string[] : [];
+    const customRules = Array.isArray(rawBody.custom_rules) ? rawBody.custom_rules as Array<Record<string, unknown>> : [];
+
     await db
       .insert(tenantConfigsTable)
       .values({
@@ -435,6 +483,9 @@ router.post("/config", async (req, res): Promise<void> => {
         watchedSubreddits: body.data.watched_subreddits,
         webhookUrl: body.data.webhook_url ?? null,
         actionMode: body.data.action_mode === "active" ? "active" : "log",
+        allowedUsers,
+        blockedUsers,
+        customRules: customRules as typeof tenantConfigsTable.$inferInsert["customRules"],
       })
       .onConflictDoUpdate({
         target: tenantConfigsTable.tenantId,
@@ -443,12 +494,15 @@ router.post("/config", async (req, res): Promise<void> => {
           watchedSubreddits: body.data.watched_subreddits,
           webhookUrl: body.data.webhook_url ?? null,
           actionMode: body.data.action_mode === "active" ? "active" : "log",
+          allowedUsers,
+          blockedUsers,
+          customRules: customRules as typeof tenantConfigsTable.$inferInsert["customRules"],
           updatedAt: new Date(),
         },
       });
 
     const result = SaveConfigResponse.parse(body.data);
-    res.json(result);
+    res.json({ ...result, allowed_users: allowedUsers, blocked_users: blockedUsers, custom_rules: customRules });
   } catch (err) {
     logger.error({ err }, "Failed to write config");
     res.status(500).json({ error: "Failed to save configuration" });
@@ -509,6 +563,107 @@ router.get("/tenant", async (req, res): Promise<void> => {
   } catch (err) {
     logger.error({ err }, "Failed to get tenant");
     res.status(500).json({ error: "Failed to get tenant info" });
+  }
+});
+
+router.get("/mod-actions", async (req, res): Promise<void> => {
+  try {
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const tenant = await getOrCreateTenant(userId);
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const offset = (page - 1) * limit;
+    const actionFilter = req.query.action as string | undefined;
+
+    const conditions = [eq(modActionsTable.tenantId, tenant.id)];
+    if (actionFilter && actionFilter !== "all") {
+      conditions.push(eq(modActionsTable.action, actionFilter));
+    }
+
+    const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
+
+    const [actions, countResult] = await Promise.all([
+      db
+        .select()
+        .from(modActionsTable)
+        .where(whereClause)
+        .orderBy(desc(modActionsTable.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(modActionsTable)
+        .where(whereClause),
+    ]);
+
+    const total = countResult[0]?.count ?? 0;
+
+    res.json({
+      items: actions,
+      total,
+      page,
+      total_pages: Math.max(1, Math.ceil(total / limit)),
+    });
+  } catch (err) {
+    logger.error({ err }, "Failed to fetch mod actions");
+    res.status(500).json({ error: "Failed to fetch mod actions" });
+  }
+});
+
+router.post("/mod-actions", async (_req, res): Promise<void> => {
+  res.status(403).json({ error: "Mod actions are recorded automatically by the system. Direct creation is not allowed." });
+});
+
+router.get("/user-profile/:author", async (req, res): Promise<void> => {
+  try {
+    const author = req.params.author;
+    if (!author) {
+      res.status(400).json({ error: "author is required" });
+      return;
+    }
+
+    let postDecisions: RawDecision[] = [];
+    let commentDecisions: RawDecision[] = [];
+
+    try {
+      const postsUrl = buildFastapiUrl("/decisions", { author, limit: 50 });
+      postDecisions = await fastapiGet(postsUrl) as RawDecision[];
+    } catch {}
+
+    try {
+      const commentsUrl = buildFastapiUrl("/comment-decisions", { author, limit: 50 });
+      commentDecisions = await fastapiGet(commentsUrl) as RawDecision[];
+    } catch {}
+
+    const allDecisions = [...postDecisions, ...commentDecisions];
+    const totalItems = allDecisions.length;
+    const flaggedItems = allDecisions.filter((d) => d.score >= 50).length;
+    const avgScore = totalItems > 0
+      ? Math.round(allDecisions.reduce((sum, d) => sum + (d.score ?? 0), 0) / totalItems)
+      : 0;
+    const subreddits = [...new Set(allDecisions.map((d) => d.subreddit as string).filter(Boolean))];
+    const recentItems = allDecisions
+      .sort((a, b) => ((b.decided_at as number) ?? 0) - ((a.decided_at as number) ?? 0))
+      .slice(0, 10);
+
+    res.json({
+      author,
+      total_items: totalItems,
+      flagged_items: flaggedItems,
+      avg_score: avgScore,
+      subreddits,
+      recent_items: recentItems,
+      risk_level: avgScore >= 70 ? "high" : avgScore >= 40 ? "medium" : "low",
+    });
+  } catch (err) {
+    logger.error({ err }, "Failed to fetch user profile");
+    res.status(500).json({ error: "Failed to fetch user profile" });
   }
 });
 

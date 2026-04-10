@@ -1,8 +1,9 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, Settings, LogOut, Shield, Menu } from "lucide-react";
-import { useHealthCheck, getHealthCheckQueryKey } from "@workspace/api-client-react";
+import { Activity, Settings, LogOut, Shield, Menu, ScrollText, Bell } from "lucide-react";
+import { useHealthCheck, getHealthCheckQueryKey, useListDecisions, getListDecisionsQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useUser, useClerk } from "@clerk/react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -44,8 +45,69 @@ const clerkEnabled = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const navItems = [
   { href: "/dashboard", label: "Flagged Queue", icon: Shield },
   { href: "/analytics", label: "Stats & Analytics", icon: Activity },
+  { href: "/mod-log", label: "Mod Action Log", icon: ScrollText },
   { href: "/config", label: "Configuration", icon: Settings },
 ];
+
+function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const { data: recentHigh } = useListDecisions(
+    { min_score: 70, limit: 5, sort_by: "date", page: 1 },
+    { query: { queryKey: [...getListDecisionsQueryKey({ min_score: 70, limit: 5, sort_by: "date", page: 1 }), "notif"], refetchInterval: 30000 } }
+  );
+
+  const highCount = recentHigh?.items?.length ?? 0;
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="relative h-9 w-9 text-muted-foreground hover:text-foreground"
+        onClick={() => setOpen(true)}
+      >
+        <Bell className="w-4 h-4" />
+        {highCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-[9px] text-white flex items-center justify-center font-bold">
+            {highCount > 9 ? "9+" : highCount}
+          </span>
+        )}
+      </Button>
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="w-full sm:max-w-sm overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-primary" />
+              Notifications
+            </SheetTitle>
+            <SheetDescription>Recent high-risk detections</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-3">
+            {highCount === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">No new high-risk items</div>
+            ) : (
+              recentHigh?.items?.map((item) => (
+                <div key={item.id} className="border border-border rounded-md p-3 hover:bg-accent/5 transition-colors">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline" className="font-mono text-[10px] text-red-500 bg-red-500/10 border-red-500/20">
+                      {item.score} RISK
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">r/{item.subreddit}</span>
+                  </div>
+                  <div className="text-sm text-foreground line-clamp-2">{item.title}</div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    u/{item.author} · {new Date(item.decided_at * 1000).toLocaleString()}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
 
 function SidebarContent({ location, onNavClick }: { location: string; onNavClick?: () => void }) {
   const { data: health } = useHealthCheck({ query: { queryKey: getHealthCheckQueryKey() } });
@@ -136,7 +198,8 @@ export default function Layout({ children }: { children: ReactNode }) {
               {navItems.find(i => i.href === location)?.label || "Dashboard"}
             </h2>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <NotificationBell />
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent text-xs font-medium text-muted-foreground">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>

@@ -8,7 +8,21 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Save, Plus, X, Webhook, Power, RotateCcw, Flag, Shield, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Save, Plus, X, Webhook, Power, RotateCcw, Flag, Shield, Eye, UserCheck, UserX, Zap, Trash2 } from "lucide-react";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+interface CustomRule {
+  id: string;
+  name: string;
+  field: string;
+  operator: string;
+  value: string;
+  action: string;
+  enabled: boolean;
+}
 
 function getScoreColor(score: number) {
   if (score >= 70) return "text-red-500 bg-red-500/10 border-red-500/20";
@@ -29,12 +43,23 @@ export default function Config() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [actionMode, setActionMode] = useState<"monitor" | "active">("monitor");
 
+  const [allowedUsers, setAllowedUsers] = useState<string[]>([]);
+  const [newAllowedUser, setNewAllowedUser] = useState("");
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
+  const [newBlockedUser, setNewBlockedUser] = useState("");
+  const [customRules, setCustomRules] = useState<CustomRule[]>([]);
+
   useEffect(() => {
     if (config) {
       setThreshold([config.score_threshold]);
       setSubreddits(config.watched_subreddits || []);
       setWebhookUrl(config.webhook_url || "");
       setActionMode(config.action_mode === "active" ? "active" : "monitor");
+
+      const ext = config as Record<string, unknown>;
+      if (Array.isArray(ext.allowed_users)) setAllowedUsers(ext.allowed_users as string[]);
+      if (Array.isArray(ext.blocked_users)) setBlockedUsers(ext.blocked_users as string[]);
+      if (Array.isArray(ext.custom_rules)) setCustomRules(ext.custom_rules as CustomRule[]);
     }
   }, [config]);
 
@@ -49,9 +74,57 @@ export default function Config() {
     setSubreddits(subreddits.filter(s => s !== sub));
   };
 
+  const handleAddAllowedUser = () => {
+    const user = newAllowedUser.trim().replace(/^u\//, "");
+    if (user && !allowedUsers.includes(user)) {
+      setAllowedUsers([...allowedUsers, user]);
+      setNewAllowedUser("");
+    }
+  };
+
+  const handleAddBlockedUser = () => {
+    const user = newBlockedUser.trim().replace(/^u\//, "");
+    if (user && !blockedUsers.includes(user)) {
+      setBlockedUsers([...blockedUsers, user]);
+      setNewBlockedUser("");
+    }
+  };
+
+  const handleAddRule = () => {
+    setCustomRules([...customRules, {
+      id: crypto.randomUUID(),
+      name: `Rule ${customRules.length + 1}`,
+      field: "score",
+      operator: "gte",
+      value: "70",
+      action: "flag",
+      enabled: true,
+    }]);
+  };
+
+  const handleUpdateRule = (id: string, updates: Partial<CustomRule>) => {
+    setCustomRules(customRules.map((r) => r.id === id ? { ...r, ...updates } : r));
+  };
+
+  const handleRemoveRule = (id: string) => {
+    setCustomRules(customRules.filter((r) => r.id !== id));
+  };
+
   const handleSave = () => {
+    const payload = {
+      data: {
+        score_threshold: threshold[0],
+        watched_subreddits: subreddits,
+        webhook_url: webhookUrl || null,
+        action_mode: actionMode,
+        allowed_users: allowedUsers,
+        blocked_users: blockedUsers,
+        custom_rules: customRules,
+      },
+    };
+
     saveConfig.mutate(
-      { data: { score_threshold: threshold[0], watched_subreddits: subreddits, webhook_url: webhookUrl || null, action_mode: actionMode } },
+      { data: payload.data as Parameters<typeof saveConfig.mutate>[0]["data"] },
       {
         onSuccess: () => {
           toast.success("Configuration saved successfully");
@@ -89,7 +162,7 @@ export default function Config() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-foreground">Configuration</h1>
-          <p className="text-xs md:text-sm text-muted-foreground mt-1">Manage system thresholds and integrations.</p>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">Manage system thresholds, lists, and rules.</p>
         </div>
         <Button onClick={handleSave} disabled={saveConfig.isPending} data-testid="btn-save-config" className="self-start min-h-[44px] md:min-h-0">
           <Save className="w-4 h-4 mr-2" />
@@ -149,10 +222,10 @@ export default function Config() {
                   {threshold[0] >= 80 ? "Conservative" : threshold[0] >= 50 ? "Balanced" : "Aggressive"}
                 </Badge>
               </div>
-              <Slider 
-                value={threshold} 
-                onValueChange={setThreshold} 
-                max={100} 
+              <Slider
+                value={threshold}
+                onValueChange={setThreshold}
+                max={100}
                 step={1}
                 className="my-4"
                 data-testid="slider-threshold"
@@ -161,7 +234,6 @@ export default function Config() {
                 Posts and comments scoring above this threshold will be flagged for review.
               </p>
             </div>
-
             <div className="grid grid-cols-2 gap-3 md:gap-4 pt-4 border-t border-border">
               <div className="bg-accent/30 p-3 rounded-md">
                 <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">Est. Catch Rate</div>
@@ -182,9 +254,9 @@ export default function Config() {
           </CardHeader>
           <CardContent className="space-y-4 px-3 md:px-6">
             <div className="flex gap-2">
-              <Input 
-                placeholder="subreddit_name" 
-                value={newSubreddit} 
+              <Input
+                placeholder="subreddit_name"
+                value={newSubreddit}
                 onChange={(e) => setNewSubreddit(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddSubreddit()}
                 className="h-10 md:h-9"
@@ -194,12 +266,11 @@ export default function Config() {
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-            
             <div className="flex flex-wrap gap-2 mt-4">
               {subreddits.map(sub => (
                 <Badge key={sub} variant="secondary" className="px-3 py-1.5 md:py-1 text-sm bg-accent hover:bg-accent group flex items-center gap-2">
                   r/{sub}
-                  <button 
+                  <button
                     onClick={() => handleRemoveSubreddit(sub)}
                     className="text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity p-1"
                     data-testid={`btn-remove-subreddit-${sub}`}
@@ -217,6 +288,177 @@ export default function Config() {
 
         <Card>
           <CardHeader className="px-3 md:px-6">
+            <div className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-green-500" />
+              <CardTitle className="text-sm md:text-base">Allowlist</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Trusted users whose content skips flagging.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 px-3 md:px-6">
+            <div className="flex gap-2">
+              <Input
+                placeholder="username"
+                value={newAllowedUser}
+                onChange={(e) => setNewAllowedUser(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddAllowedUser()}
+                className="h-10 md:h-9"
+              />
+              <Button type="button" variant="secondary" onClick={handleAddAllowedUser} className="h-10 md:h-9 min-w-[44px]">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {allowedUsers.map((user) => (
+                <Badge key={user} variant="secondary" className="px-3 py-1.5 md:py-1 text-sm bg-green-500/10 text-green-500 border-green-500/20 group flex items-center gap-2">
+                  u/{user}
+                  <button
+                    onClick={() => setAllowedUsers(allowedUsers.filter((u) => u !== user))}
+                    className="text-green-500/50 hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity p-1"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              ))}
+              {allowedUsers.length === 0 && <span className="text-sm text-muted-foreground">No users allowlisted.</span>}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="px-3 md:px-6">
+            <div className="flex items-center gap-2">
+              <UserX className="w-4 h-4 text-red-500" />
+              <CardTitle className="text-sm md:text-base">Blocklist</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Users whose content is always flagged for review.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 px-3 md:px-6">
+            <div className="flex gap-2">
+              <Input
+                placeholder="username"
+                value={newBlockedUser}
+                onChange={(e) => setNewBlockedUser(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddBlockedUser()}
+                className="h-10 md:h-9"
+              />
+              <Button type="button" variant="secondary" onClick={handleAddBlockedUser} className="h-10 md:h-9 min-w-[44px]">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {blockedUsers.map((user) => (
+                <Badge key={user} variant="secondary" className="px-3 py-1.5 md:py-1 text-sm bg-red-500/10 text-red-500 border-red-500/20 group flex items-center gap-2">
+                  u/{user}
+                  <button
+                    onClick={() => setBlockedUsers(blockedUsers.filter((u) => u !== user))}
+                    className="text-red-500/50 hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity p-1"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              ))}
+              {blockedUsers.length === 0 && <span className="text-sm text-muted-foreground">No users blocklisted.</span>}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader className="px-3 md:px-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-500" />
+                <CardTitle className="text-sm md:text-base">Smart Rules</CardTitle>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddRule} className="h-8">
+                <Plus className="w-3 h-3 mr-1" /> Add Rule
+              </Button>
+            </div>
+            <CardDescription className="text-xs">Create custom automation rules for content handling.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 px-3 md:px-6">
+            {customRules.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                No custom rules. Click "Add Rule" to create one.
+              </div>
+            ) : (
+              customRules.map((rule) => (
+                <div key={rule.id} className={`border rounded-lg p-3 space-y-3 transition-colors ${rule.enabled ? "border-border bg-card" : "border-border/50 bg-muted/30 opacity-60"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <Input
+                      value={rule.name}
+                      onChange={(e) => handleUpdateRule(rule.id, { name: e.target.value })}
+                      className="h-8 text-sm font-medium max-w-[200px]"
+                      placeholder="Rule name"
+                    />
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Switch
+                        checked={rule.enabled}
+                        onCheckedChange={(checked) => handleUpdateRule(rule.id, { enabled: checked })}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveRule(rule.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                    <span className="text-xs text-muted-foreground shrink-0">If</span>
+                    <Select value={rule.field} onValueChange={(v) => handleUpdateRule(rule.id, { field: v })}>
+                      <SelectTrigger className="h-8 w-full sm:w-[120px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="score">Score</SelectItem>
+                        <SelectItem value="author">Author</SelectItem>
+                        <SelectItem value="subreddit">Subreddit</SelectItem>
+                        <SelectItem value="title">Title</SelectItem>
+                        <SelectItem value="ai_score">AI Score</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={rule.operator} onValueChange={(v) => handleUpdateRule(rule.id, { operator: v })}>
+                      <SelectTrigger className="h-8 w-full sm:w-[140px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="gte">is at least</SelectItem>
+                        <SelectItem value="lte">is at most</SelectItem>
+                        <SelectItem value="eq">equals</SelectItem>
+                        <SelectItem value="contains">contains</SelectItem>
+                        <SelectItem value="not_contains">does not contain</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={rule.value}
+                      onChange={(e) => handleUpdateRule(rule.id, { value: e.target.value })}
+                      className="h-8 text-xs flex-1"
+                      placeholder="Value"
+                    />
+                    <span className="text-xs text-muted-foreground shrink-0">then</span>
+                    <Select value={rule.action} onValueChange={(v) => handleUpdateRule(rule.id, { action: v })}>
+                      <SelectTrigger className="h-8 w-full sm:w-[120px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="flag">Flag for review</SelectItem>
+                        <SelectItem value="approve">Auto-approve</SelectItem>
+                        <SelectItem value="remove">Auto-remove</SelectItem>
+                        <SelectItem value="notify">Send notification</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="px-3 md:px-6">
             <CardTitle className="text-sm md:text-base">Integration Hub</CardTitle>
             <CardDescription className="text-xs">Configure external notifications and webhooks.</CardDescription>
           </CardHeader>
@@ -224,16 +466,16 @@ export default function Config() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Alert Webhook URL</label>
               <div className="flex flex-col sm:flex-row gap-2">
-                <Input 
-                  placeholder="https://hooks.slack.com/services/..." 
+                <Input
+                  placeholder="https://hooks.slack.com/services/..."
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
                   className="font-mono text-xs h-10 md:h-9 flex-1"
                   data-testid="input-webhook"
                 />
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleTestWebhook}
                   disabled={!webhookUrl || testWebhook.isPending}
                   className="h-10 md:h-9 min-h-[44px] md:min-h-0"
@@ -257,8 +499,8 @@ export default function Config() {
           </CardHeader>
           <CardContent className="space-y-4 px-3 md:px-6">
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 className="w-full min-h-[44px] md:min-h-0"
                 onClick={() => toast.success("System halted. No new posts will be analyzed.")}
                 data-testid="btn-halt-system"
@@ -266,8 +508,8 @@ export default function Config() {
                 <Power className="w-4 h-4 mr-2" />
                 Halt System
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive min-h-[44px] md:min-h-0"
                 onClick={() => toast.success("System soft reset initiated.")}
                 data-testid="btn-soft-reset"
