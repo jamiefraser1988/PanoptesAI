@@ -1,8 +1,11 @@
 import { Devvit, TriggerContext } from "@devvit/public-api";
+import "./game.js";
 
 Devvit.configure({
   redditAPI: true,
-  http: true,
+  http: {
+    domains: ["workspace-jfwizkid.replit.app"],
+  },
   redis: true,
 });
 

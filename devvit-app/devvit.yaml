@@ -1,5 +1,5 @@
 name: panoptes-ai
-version: 0.0.3
+version: 0.0.4
 permissions:
   http:
     enable: true
