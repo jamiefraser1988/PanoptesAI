@@ -67,6 +67,7 @@ Devvit.addCustomPostType({
     const [ticks, setTicks] = context.useState<number>(0);
     const [lbStr, setLbStr] = context.useState<string>("[]");
     const [best, setBest] = context.useState<number>(0);
+    const [rank, setRank] = context.useState<number>(0);
 
     const threats: Threat[] = JSON.parse(threatsStr);
     const lb: LeaderEntry[] = JSON.parse(lbStr);
@@ -83,13 +84,25 @@ Devvit.addCustomPostType({
       let currentMaxSpawn = maxSpawn;
       let currentNextId = nextId;
 
+      const stepsPerTick = Math.min(1 + Math.floor((currentWave - 1) / 2), 3);
       const moved: Threat[] = [];
       for (const t of currentThreats) {
-        const [nx, ny] = stepToward(t.x, t.y);
-        if (nx === CENTER && ny === CENTER) {
+        let tx = t.x;
+        let ty = t.y;
+        let reached = false;
+        for (let s = 0; s < stepsPerTick; s++) {
+          const [nx, ny] = stepToward(tx, ty);
+          if (nx === CENTER && ny === CENTER) {
+            reached = true;
+            break;
+          }
+          tx = nx;
+          ty = ny;
+        }
+        if (reached) {
           currentLives--;
         } else {
-          moved.push({ ...t, x: nx, y: ny });
+          moved.push({ ...t, x: tx, y: ty });
         }
       }
 
@@ -118,8 +131,10 @@ Devvit.addCustomPostType({
           if (existing === undefined || existing === null || currentScore > existing) {
             await context.redis.zAdd(lbKey(sid), { member: uname, score: currentScore });
           }
-          const entries = await context.redis.zRange(lbKey(sid), 0, 9, { reverse: true, by: "rank" });
-          setLbStr(JSON.stringify(entries.map((e) => ({ name: e.member, score: e.score }))));
+          const allEntries = await context.redis.zRange(lbKey(sid), 0, 99, { reverse: true, by: "rank" });
+          setLbStr(JSON.stringify(allEntries.slice(0, 10).map((e) => ({ name: e.member, score: e.score }))));
+          const playerRank = allEntries.findIndex((e) => e.member === uname) + 1;
+          setRank(playerRank > 0 ? playerRank : allEntries.length + 1);
         }
         return;
       }
@@ -332,7 +347,12 @@ Devvit.addCustomPostType({
         >
           <text size="xxlarge" weight="bold" color="#FF4500">GAME OVER</text>
           <text size="xlarge" weight="bold" color="#FFFFFF">Score: {score}</text>
-          <text size="medium" color="#999999">Wave reached: {wave}</text>
+          <hstack gap="medium" alignment="center">
+            <text size="medium" color="#999999">Wave {wave}</text>
+            {rank > 0 && (
+              <text size="medium" color="#FF4500">Rank #{rank}</text>
+            )}
+          </hstack>
           {best > 0 && (
             <text size="small" color="#FF4500">Personal best: {best}</text>
           )}
@@ -354,8 +374,12 @@ Devvit.addCustomPostType({
           <button appearance="primary" onPress={startGame}>Play Again</button>
           <button appearance="bordered" onPress={goMenu}>Menu</button>
           <spacer size="small" />
-          <text size="xsmall" color="#777777">Protect your real subreddit {"\u2014"} try PanoptesAI</text>
-          <text size="xsmall" color="#FF4500">panoptesai.com</text>
+          <button
+            appearance="bordered"
+            onPress={() => context.ui.navigateTo("https://workspace-jfwizkid.replit.app")}
+          >
+            {"\u{1F6E1}"} Protect your real subreddit
+          </button>
         </vstack>
       );
     }
