@@ -114,8 +114,8 @@ function SidebarContent({ location, onNavClick }: { location: string; onNavClick
 
   return (
     <>
-      <div className="h-16 flex items-center px-6 border-b border-border gap-2">
-        <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-7 h-7 object-contain" />
+      <div className="h-16 flex items-center px-6 border-b border-border gap-3">
+        <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(56,189,248,0.25)]" />
         <h1 className="font-bold text-lg tracking-tight text-foreground">
           <span className="text-primary">Panoptes</span>AI
         </h1>

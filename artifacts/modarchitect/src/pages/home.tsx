@@ -60,7 +60,7 @@ export default function Home({ isSignedIn = false }: { isSignedIn?: boolean }) {
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 border-b border-border bg-card/50">
           <div className="flex items-center gap-2">
-            <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-7 h-7 object-contain" />
+            <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(56,189,248,0.25)]" />
             <h1 className="font-bold text-lg tracking-tight">
               <span className="text-primary">Panoptes</span>AI
             </h1>
@@ -121,7 +121,7 @@ export default function Home({ isSignedIn = false }: { isSignedIn?: boolean }) {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 border-b border-border bg-card/50">
         <div className="flex items-center gap-2">
-          <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-7 h-7 object-contain" />
+          <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(56,189,248,0.25)]" />
           <h1 className="font-bold text-lg tracking-tight">
             <span className="text-primary">Panoptes</span>AI
           </h1>
@@ -140,7 +140,9 @@ export default function Home({ isSignedIn = false }: { isSignedIn?: boolean }) {
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 py-10 md:py-16">
         <div className="max-w-3xl text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4">
+          <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-20 h-20 md:w-24 md:h-24 object-contain mx-auto mb-2 drop-shadow-[0_0_15px_rgba(56,189,248,0.3)]" />
+
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
             <Zap className="w-3 h-3" />
             Real-time Reddit Moderation
           </div>
