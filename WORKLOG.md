@@ -36,6 +36,7 @@ _Last updated: 10 April 2026_
 |---|------|--------|-------|
 | 20 | Devvit app approval on Reddit Developer Portal | WAITING | Submitted, pending Reddit review — blocks live monitoring |
 | 21 | Game color scheme update — align Eyes of Panoptes with new cyan/blue brand | DONE | Updated all colors: #FF4500→#38BDF8, backgrounds to cool blue-gray |
+| 22 | Fix API error log spam — graceful fallback when FastAPI not running | DONE | Fixed ECONNREFUSED detection (err.cause), returns empty data instead of 502 |
 
 ---
 
@@ -43,11 +44,11 @@ _Last updated: 10 April 2026_
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 22 | FastAPI scoring engine hosting — get Python backend running in production | PLANNED | Currently ECONNREFUSED on port 8001 |
-| 23 | End-to-end live monitoring test — verify full pipeline once Devvit is approved | PLANNED | Devvit → API → scoring → dashboard |
-| 24 | Discord/Slack webhook notifications — send alerts when high-risk content detected | PLANNED | Webhook URL/type already in config schema |
-| 25 | Publish latest build to production | PLANNED | Deploy to workspace-jfwizkid.replit.app |
-| 26 | GitHub repo sync — push latest changes | PLANNED | Repo: jamiefraser1988/PanoptesAI |
+| 23 | FastAPI scoring engine hosting — get Python backend running in production | PLANNED | Graceful fallback in place, needs actual FastAPI running |
+| 24 | End-to-end live monitoring test — verify full pipeline once Devvit is approved | PLANNED | Devvit → API → scoring → dashboard |
+| 25 | Discord/Slack webhook notifications — send alerts when high-risk content detected | PLANNED | Webhook URL/type already in config schema |
+| 26 | Publish latest build to production | PLANNED | Deploy to workspace-jfwizkid.replit.app |
+| 27 | GitHub repo sync — push latest changes | PLANNED | Repo: jamiefraser1988/PanoptesAI |
 
 ---
 

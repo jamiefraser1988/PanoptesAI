@@ -22,6 +22,15 @@ const FASTAPI_URL = process.env.FASTAPI_URL ?? "http://localhost:8001";
 
 type RawDecision = Record<string, unknown> & { score: number; content_type?: string };
 
+function isConnectionRefused(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message ?? "";
+  if (msg.includes("ECONNREFUSED")) return true;
+  const cause = (err as { cause?: Error }).cause;
+  if (cause instanceof Error && cause.message?.includes("ECONNREFUSED")) return true;
+  return false;
+}
+
 function buildFastapiUrl(path: string, query: Record<string, unknown>): string {
   const url = new URL(path, FASTAPI_URL);
   for (const [key, value] of Object.entries(query)) {
@@ -230,9 +239,8 @@ router.get("/decisions", async (req, res): Promise<void> => {
 
     res.json(response);
   } catch (err) {
-    const isConnectionRefused = err instanceof TypeError && String(err.message).includes("ECONNREFUSED");
-    if (isConnectionRefused) {
-      req.log.warn("FastAPI backend unavailable — returning empty decisions");
+    if (isConnectionRefused(err)) {
+      req.log.info("FastAPI backend unavailable — returning empty decisions");
       const response = ListDecisionsResponse.parse({
         items: [],
         total: 0,
@@ -290,9 +298,8 @@ router.get("/comment-decisions", async (req, res): Promise<void> => {
 
     res.json(response);
   } catch (err) {
-    const isConnectionRefused = err instanceof TypeError && String(err.message).includes("ECONNREFUSED");
-    if (isConnectionRefused) {
-      req.log.warn("FastAPI backend unavailable — returning empty comment-decisions");
+    if (isConnectionRefused(err)) {
+      req.log.info("FastAPI backend unavailable — returning empty comment-decisions");
       const response = ListDecisionsResponse.parse({
         items: [],
         total: 0,
@@ -359,6 +366,11 @@ router.post("/decisions/:postId/feedback", async (req, res): Promise<void> => {
 
     res.json(result);
   } catch (err) {
+    if (isConnectionRefused(err)) {
+      req.log.info("FastAPI backend unavailable — cannot submit feedback");
+      res.status(503).json({ error: "Scoring backend is not currently running. Feedback cannot be submitted." });
+      return;
+    }
     req.log.error({ err }, "Failed to submit feedback to FastAPI");
     res.status(502).json({ error: "Failed to submit feedback" });
   }
@@ -400,9 +412,8 @@ router.get("/stats", async (req, res): Promise<void> => {
 
     res.json(result);
   } catch (err) {
-    const isConnectionRefused = err instanceof TypeError && String(err.message).includes("ECONNREFUSED");
-    if (isConnectionRefused) {
-      req.log.warn("FastAPI backend unavailable — returning empty stats");
+    if (isConnectionRefused(err)) {
+      req.log.info("FastAPI backend unavailable — returning empty stats");
       const result = GetStatsResponse.parse({
         total_posts: 0,
         flagged_posts: 0,
