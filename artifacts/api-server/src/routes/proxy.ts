@@ -401,6 +401,7 @@ router.get("/config", async (req, res): Promise<void> => {
       score_threshold: config?.scoreThreshold ?? 70,
       watched_subreddits: (config?.watchedSubreddits as string[]) ?? [],
       webhook_url: config?.webhookUrl ?? null,
+      action_mode: config?.actionMode === "active" ? "active" : "monitor",
     });
     res.json(result);
   } catch (err) {
@@ -433,6 +434,7 @@ router.post("/config", async (req, res): Promise<void> => {
         scoreThreshold: body.data.score_threshold,
         watchedSubreddits: body.data.watched_subreddits,
         webhookUrl: body.data.webhook_url ?? null,
+        actionMode: body.data.action_mode === "active" ? "active" : "log",
       })
       .onConflictDoUpdate({
         target: tenantConfigsTable.tenantId,
@@ -440,6 +442,7 @@ router.post("/config", async (req, res): Promise<void> => {
           scoreThreshold: body.data.score_threshold,
           watchedSubreddits: body.data.watched_subreddits,
           webhookUrl: body.data.webhook_url ?? null,
+          actionMode: body.data.action_mode === "active" ? "active" : "log",
           updatedAt: new Date(),
         },
       });

@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { BotConfigActionMode } from "./botConfigActionMode";
 
 export interface BotConfig {
   /**
@@ -14,4 +15,5 @@ export interface BotConfig {
   score_threshold: number;
   watched_subreddits: string[];
   webhook_url?: string | null;
+  action_mode: BotConfigActionMode;
 }

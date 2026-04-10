@@ -21,7 +21,6 @@ export const HealthCheckResponse = zod.object({
 export const listDecisionsQueryContentTypeDefault = `all`;
 export const listDecisionsQueryPageDefault = 1;
 export const listDecisionsQueryLimitDefault = 20;
-export const listDecisionsQuerySortByDefault = `score`;
 
 export const ListDecisionsQueryParams = zod.object({
   subreddit: zod.coerce.string().optional(),
@@ -31,7 +30,6 @@ export const ListDecisionsQueryParams = zod.object({
     .default(listDecisionsQueryContentTypeDefault),
   page: zod.coerce.number().default(listDecisionsQueryPageDefault),
   limit: zod.coerce.number().default(listDecisionsQueryLimitDefault),
-  sort_by: zod.enum(["score", "date"]).default(listDecisionsQuerySortByDefault),
 });
 
 export const ListDecisionsResponse = zod.object({
@@ -48,10 +46,6 @@ export const ListDecisionsResponse = zod.object({
       decided_at: zod.number(),
       feedback: zod.string().nullish(),
       content_type: zod.enum(["post", "comment"]).optional(),
-      ai_score: zod.number().nullish(),
-      ai_summary: zod.string().nullish(),
-      ai_signals: zod.array(zod.string()).nullish(),
-      ai_action: zod.string().nullish(),
     }),
   ),
   total: zod.number(),
@@ -82,10 +76,6 @@ export const SubmitFeedbackResponse = zod.object({
   decided_at: zod.number(),
   feedback: zod.string().nullish(),
   content_type: zod.enum(["post", "comment"]).optional(),
-  ai_score: zod.number().nullish(),
-  ai_summary: zod.string().nullish(),
-  ai_signals: zod.array(zod.string()).nullish(),
-  ai_action: zod.string().nullish(),
 });
 
 /**
@@ -134,6 +124,8 @@ export const GetStatsResponse = zod.object({
 export const getConfigResponseScoreThresholdMin = 0;
 export const getConfigResponseScoreThresholdMax = 100;
 
+export const getConfigResponseActionModeDefault = `monitor`;
+
 export const GetConfigResponse = zod.object({
   score_threshold: zod
     .number()
@@ -141,6 +133,9 @@ export const GetConfigResponse = zod.object({
     .max(getConfigResponseScoreThresholdMax),
   watched_subreddits: zod.array(zod.string()),
   webhook_url: zod.string().nullish(),
+  action_mode: zod
+    .enum(["monitor", "active"])
+    .default(getConfigResponseActionModeDefault),
 });
 
 /**
@@ -149,6 +144,8 @@ export const GetConfigResponse = zod.object({
 export const saveConfigBodyScoreThresholdMin = 0;
 export const saveConfigBodyScoreThresholdMax = 100;
 
+export const saveConfigBodyActionModeDefault = `monitor`;
+
 export const SaveConfigBody = zod.object({
   score_threshold: zod
     .number()
@@ -156,10 +153,15 @@ export const SaveConfigBody = zod.object({
     .max(saveConfigBodyScoreThresholdMax),
   watched_subreddits: zod.array(zod.string()),
   webhook_url: zod.string().nullish(),
+  action_mode: zod
+    .enum(["monitor", "active"])
+    .default(saveConfigBodyActionModeDefault),
 });
 
 export const saveConfigResponseScoreThresholdMin = 0;
 export const saveConfigResponseScoreThresholdMax = 100;
+
+export const saveConfigResponseActionModeDefault = `monitor`;
 
 export const SaveConfigResponse = zod.object({
   score_threshold: zod
@@ -168,6 +170,9 @@ export const SaveConfigResponse = zod.object({
     .max(saveConfigResponseScoreThresholdMax),
   watched_subreddits: zod.array(zod.string()),
   webhook_url: zod.string().nullish(),
+  action_mode: zod
+    .enum(["monitor", "active"])
+    .default(saveConfigResponseActionModeDefault),
 });
 
 /**

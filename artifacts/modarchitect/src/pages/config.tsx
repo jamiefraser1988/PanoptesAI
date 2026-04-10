@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Save, Plus, X, Webhook, Power, RotateCcw, Flag } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Save, Plus, X, Webhook, Power, RotateCcw, Flag, Shield, Eye } from "lucide-react";
 
 function getScoreColor(score: number) {
   if (score >= 70) return "text-red-500 bg-red-500/10 border-red-500/20";
@@ -26,12 +27,14 @@ export default function Config() {
   const [subreddits, setSubreddits] = useState<string[]>([]);
   const [newSubreddit, setNewSubreddit] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
+  const [actionMode, setActionMode] = useState<"monitor" | "active">("monitor");
 
   useEffect(() => {
     if (config) {
       setThreshold([config.score_threshold]);
       setSubreddits(config.watched_subreddits || []);
       setWebhookUrl(config.webhook_url || "");
+      setActionMode(config.action_mode === "active" ? "active" : "monitor");
     }
   }, [config]);
 
@@ -48,7 +51,7 @@ export default function Config() {
 
   const handleSave = () => {
     saveConfig.mutate(
-      { data: { score_threshold: threshold[0], watched_subreddits: subreddits, webhook_url: webhookUrl || null } },
+      { data: { score_threshold: threshold[0], watched_subreddits: subreddits, webhook_url: webhookUrl || null, action_mode: actionMode } },
       {
         onSuccess: () => {
           toast.success("Configuration saved successfully");
@@ -93,6 +96,42 @@ export default function Config() {
           Save Changes
         </Button>
       </div>
+
+      <Card className={actionMode === "active" ? "border-red-500/50 bg-red-500/5" : "border-green-500/50 bg-green-500/5"}>
+        <CardContent className="py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {actionMode === "monitor" ? (
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <Eye className="w-5 h-5 text-green-500" />
+                </div>
+              ) : (
+                <div className="p-2 rounded-lg bg-red-500/10">
+                  <Shield className="w-5 h-5 text-red-500" />
+                </div>
+              )}
+              <div>
+                <div className="font-semibold text-foreground">
+                  {actionMode === "monitor" ? "Monitor Only" : "Active Enforcement"}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {actionMode === "monitor"
+                    ? "System scans, scores, and flags content but takes no mod actions. Safe for testing on live subreddits."
+                    : "System will take automated mod actions (report/remove) on content above the threshold."}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">{actionMode === "monitor" ? "Monitoring" : "Active"}</span>
+              <Switch
+                checked={actionMode === "active"}
+                onCheckedChange={(checked) => setActionMode(checked ? "active" : "monitor")}
+                data-testid="switch-action-mode"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>

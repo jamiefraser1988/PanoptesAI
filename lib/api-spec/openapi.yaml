@@ -326,9 +326,16 @@ components:
         webhook_url:
           type: string
           nullable: true
+        action_mode:
+          type: string
+          enum:
+            - monitor
+            - active
+          default: monitor
       required:
         - score_threshold
         - watched_subreddits
+        - action_mode
 
     WebhookTestResult:
       type: object

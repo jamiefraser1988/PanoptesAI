@@ -21,6 +21,7 @@ interface ScoringResult {
   score: number;
   reasons: string[];
   action: string;
+  action_mode?: string;
   ai_summary?: string;
   ai_signals?: string[];
 }
@@ -129,6 +130,23 @@ router.post("/devvit/scan", async (req, res): Promise<void> => {
 
   if (!apiKey) {
     const localResult = computeLocalScore(req.body as ScanRequest);
+    let dbMode = "log";
+    try {
+      const configs = await db
+        .select({ actionMode: tenantConfigsTable.actionMode })
+        .from(tenantConfigsTable)
+        .limit(1);
+      if (configs.length > 0) {
+        dbMode = configs[0].actionMode;
+      }
+    } catch {
+      // default to monitor/log
+    }
+    const isMonitor = dbMode !== "active";
+    if (isMonitor) {
+      localResult.action = "log";
+    }
+    localResult.action_mode = isMonitor ? "monitor" : "active";
     res.json(localResult);
     return;
   }
@@ -144,12 +162,32 @@ router.post("/devvit/scan", async (req, res): Promise<void> => {
     const fastapiResult = await tryFastapiScore(scanReq);
     const result = fastapiResult ?? computeLocalScore(scanReq);
 
+    let dbMode = "log";
+    try {
+      const configs = await db
+        .select({ actionMode: tenantConfigsTable.actionMode })
+        .from(tenantConfigsTable)
+        .limit(1);
+      if (configs.length > 0) {
+        dbMode = configs[0].actionMode;
+      }
+    } catch {
+      // default to monitor if DB unavailable
+    }
+
+    const isMonitor = dbMode !== "active";
+    if (isMonitor) {
+      result.action = "log";
+    }
+    result.action_mode = isMonitor ? "monitor" : "active";
+
     logger.info({
       reddit_id: scanReq.reddit_id,
       type: scanReq.type,
       subreddit: scanReq.subreddit,
       score: result.score,
       action: result.action,
+      action_mode: result.action_mode,
     }, "Devvit scan completed");
 
     res.json(result);

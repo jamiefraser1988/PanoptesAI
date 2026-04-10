@@ -7,6 +7,7 @@
  */
 
 export * from "./botConfig";
+export * from "./botConfigActionMode";
 export * from "./dailyActivity";
 export * from "./decision";
 export * from "./decisionContentType";
@@ -18,7 +19,6 @@ export * from "./getStatsTimeframe";
 export * from "./healthStatus";
 export * from "./listDecisionsContentType";
 export * from "./listDecisionsParams";
-export * from "./listDecisionsSortBy";
 export * from "./reasonStat";
 export * from "./statsOut";
 export * from "./subredditStat";

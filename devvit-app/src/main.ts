@@ -61,6 +61,7 @@ interface ScanResponse {
   score: number;
   reasons: string[];
   action: string;
+  action_mode?: string;
   ai_summary?: string;
   ai_signals?: string[];
 }
@@ -130,8 +131,12 @@ async function handleResult(
     return;
   }
 
+  const serverMode = result.action_mode;
+  const isMonitorOnly = serverMode === "monitor";
+
   const reasonSummary = result.reasons.slice(0, 3).join("; ");
-  const logMsg = `[PanoptesAI] ${contentType} ${thingId} scored ${result.score}/100 — ${reasonSummary}`;
+  const modeLabel = isMonitorOnly ? "[MONITOR]" : "[ACTIVE]";
+  const logMsg = `[PanoptesAI] ${modeLabel} ${contentType} ${thingId} scored ${result.score}/100 — ${reasonSummary}`;
   console.log(logMsg);
 
   await context.redis.set(
@@ -139,12 +144,18 @@ async function handleResult(
     JSON.stringify({
       score: result.score,
       reasons: result.reasons,
-      action: result.action,
+      action: isMonitorOnly ? "log" : result.action,
+      action_mode: serverMode,
       ai_summary: result.ai_summary,
       timestamp: Date.now(),
     }),
     { expiration: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }
   );
+
+  if (isMonitorOnly) {
+    console.log(`[PanoptesAI] Monitor mode — no action taken on ${thingId}`);
+    return;
+  }
 
   if (actionMode === "report") {
     if (contentType === "post") {
