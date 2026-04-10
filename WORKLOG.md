@@ -35,7 +35,7 @@ _Last updated: 10 April 2026_
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 20 | Devvit app approval on Reddit Developer Portal | WAITING | Submitted, pending Reddit review — blocks live monitoring |
-| 21 | Game color scheme update — align Eyes of Panoptes with new cyan/blue brand | NOT STARTED | Old orange #FF4500 still used in game.tsx |
+| 21 | Game color scheme update — align Eyes of Panoptes with new cyan/blue brand | DONE | Updated all colors: #FF4500→#38BDF8, backgrounds to cool blue-gray |
 
 ---
 

@@ -20,9 +20,9 @@ interface LeaderEntry {
 }
 
 const THREAT_INFO: Record<ThreatType, { emoji: string; points: number; bg: string }> = {
-  bot: { emoji: "\u{1F916}", points: 10, bg: "#6B1010" },
-  phish: { emoji: "\u{1F3A3}", points: 15, bg: "#3B1065" },
-  spam: { emoji: "\u{1F4E7}", points: 5, bg: "#5E5E10" },
+  bot: { emoji: "\u{1F916}", points: 10, bg: "#7F1D1D" },
+  phish: { emoji: "\u{1F3A3}", points: 15, bg: "#581C87" },
+  spam: { emoji: "\u{1F4E7}", points: 5, bg: "#713F12" },
 };
 
 const TYPES: ThreatType[] = ["bot", "phish", "spam"];
@@ -228,7 +228,7 @@ Devvit.addCustomPostType({
             height="52px"
             alignment="center middle"
             cornerRadius="small"
-            backgroundColor="#C23A00"
+            backgroundColor="#0C4A6E"
           >
             <text size="xlarge">{"\u{1F441}"}</text>
           </zstack>
@@ -257,7 +257,7 @@ Devvit.addCustomPostType({
           width="52px"
           height="52px"
           cornerRadius="small"
-          backgroundColor="#2A2520"
+          backgroundColor="#152238"
         >
           <text size="small">{" "}</text>
         </zstack>
@@ -270,33 +270,33 @@ Devvit.addCustomPostType({
           height="100%"
           width="100%"
           alignment="center middle"
-          backgroundColor="#1A1714"
+          backgroundColor="#0B1120"
           padding="large"
           gap="medium"
         >
-          <text size="xxlarge" weight="bold" color="#FF4500">
+          <text size="xxlarge" weight="bold" color="#38BDF8">
             {"\u{1F441}"} EYES OF PANOPTES
           </text>
-          <text size="medium" color="#999999">
+          <text size="medium" color="#94A3B8">
             Defend your subreddit from threats
           </text>
           <spacer size="small" />
           <hstack gap="medium" alignment="center">
-            <vstack alignment="center" backgroundColor="#6B1010" padding="small" cornerRadius="small">
+            <vstack alignment="center" backgroundColor="#7F1D1D" padding="small" cornerRadius="small">
               <text size="large">{"\u{1F916}"}</text>
-              <text size="xsmall" color="#CCCCCC">Bot 10pts</text>
+              <text size="xsmall" color="#CBD5E1">Bot 10pts</text>
             </vstack>
-            <vstack alignment="center" backgroundColor="#3B1065" padding="small" cornerRadius="small">
+            <vstack alignment="center" backgroundColor="#581C87" padding="small" cornerRadius="small">
               <text size="large">{"\u{1F3A3}"}</text>
-              <text size="xsmall" color="#CCCCCC">Phish 15pts</text>
+              <text size="xsmall" color="#CBD5E1">Phish 15pts</text>
             </vstack>
-            <vstack alignment="center" backgroundColor="#5E5E10" padding="small" cornerRadius="small">
+            <vstack alignment="center" backgroundColor="#713F12" padding="small" cornerRadius="small">
               <text size="large">{"\u{1F4E7}"}</text>
-              <text size="xsmall" color="#CCCCCC">Spam 5pts</text>
+              <text size="xsmall" color="#CBD5E1">Spam 5pts</text>
             </vstack>
           </hstack>
           <spacer size="small" />
-          <text size="small" color="#777777">
+          <text size="small" color="#64748B">
             Tap threats before they reach the center!
           </text>
           <spacer size="medium" />
@@ -311,13 +311,13 @@ Devvit.addCustomPostType({
         <vstack
           height="100%"
           width="100%"
-          backgroundColor="#1A1714"
+          backgroundColor="#0B1120"
           padding="medium"
           alignment="center"
           gap="small"
         >
           <hstack width="100%" alignment="center" gap="medium">
-            <text size="medium" weight="bold" color="#FF4500">Score: {score}</text>
+            <text size="medium" weight="bold" color="#38BDF8">Score: {score}</text>
             <text size="medium" color="#FFFFFF">Wave {wave}</text>
             <text size="medium">{hearts}</text>
           </hstack>
@@ -330,7 +330,7 @@ Devvit.addCustomPostType({
             ))}
           </vstack>
           <spacer size="small" />
-          <text size="xsmall" color="#555555">Tap threats to zap them!</text>
+          <text size="xsmall" color="#475569">Tap threats to zap them!</text>
         </vstack>
       );
     }
@@ -341,31 +341,31 @@ Devvit.addCustomPostType({
           height="100%"
           width="100%"
           alignment="center middle"
-          backgroundColor="#1A1714"
+          backgroundColor="#0B1120"
           padding="large"
           gap="medium"
         >
-          <text size="xxlarge" weight="bold" color="#FF4500">GAME OVER</text>
+          <text size="xxlarge" weight="bold" color="#38BDF8">GAME OVER</text>
           <text size="xlarge" weight="bold" color="#FFFFFF">Score: {score}</text>
           <hstack gap="medium" alignment="center">
-            <text size="medium" color="#999999">Wave {wave}</text>
+            <text size="medium" color="#94A3B8">Wave {wave}</text>
             {rank > 0 && (
-              <text size="medium" color="#FF4500">Rank #{rank}</text>
+              <text size="medium" color="#38BDF8">Rank #{rank}</text>
             )}
           </hstack>
           {best > 0 && (
-            <text size="small" color="#FF4500">Personal best: {best}</text>
+            <text size="small" color="#38BDF8">Personal best: {best}</text>
           )}
           <spacer size="small" />
           {lb.length > 0 && (
-            <vstack width="100%" backgroundColor="#2A2520" cornerRadius="medium" padding="medium" gap="small">
-              <text size="small" weight="bold" color="#FF4500">Top Scores</text>
+            <vstack width="100%" backgroundColor="#152238" cornerRadius="medium" padding="medium" gap="small">
+              <text size="small" weight="bold" color="#38BDF8">Top Scores</text>
               {lb.slice(0, 5).map((entry, i) => (
                 <hstack width="100%" alignment="center">
-                  <text size="small" color="#999999">{i + 1}.</text>
+                  <text size="small" color="#94A3B8">{i + 1}.</text>
                   <spacer size="small" />
                   <text size="small" color="#FFFFFF" grow>{entry.name}</text>
-                  <text size="small" weight="bold" color="#FF4500">{entry.score}</text>
+                  <text size="small" weight="bold" color="#38BDF8">{entry.score}</text>
                 </hstack>
               ))}
             </vstack>
@@ -390,25 +390,25 @@ Devvit.addCustomPostType({
           height="100%"
           width="100%"
           alignment="center middle"
-          backgroundColor="#1A1714"
+          backgroundColor="#0B1120"
           padding="large"
           gap="medium"
         >
-          <text size="xxlarge" weight="bold" color="#FF4500">{"\u{1F3C6}"} LEADERBOARD</text>
+          <text size="xxlarge" weight="bold" color="#38BDF8">{"\u{1F3C6}"} LEADERBOARD</text>
           {best > 0 && (
-            <text size="small" color="#FF4500">Your best: {best}</text>
+            <text size="small" color="#38BDF8">Your best: {best}</text>
           )}
           <spacer size="small" />
           {lb.length === 0 ? (
-            <text size="medium" color="#777777">No scores yet. Be the first!</text>
+            <text size="medium" color="#64748B">No scores yet. Be the first!</text>
           ) : (
-            <vstack width="100%" backgroundColor="#2A2520" cornerRadius="medium" padding="medium" gap="small">
+            <vstack width="100%" backgroundColor="#152238" cornerRadius="medium" padding="medium" gap="small">
               {lb.map((entry, i) => (
                 <hstack width="100%" alignment="center">
-                  <text size="small" weight="bold" color={i < 3 ? "#FF4500" : "#999999"}>#{i + 1}</text>
+                  <text size="small" weight="bold" color={i < 3 ? "#38BDF8" : "#94A3B8"}>#{i + 1}</text>
                   <spacer size="small" />
                   <text size="small" color="#FFFFFF" grow>{entry.name}</text>
-                  <text size="small" weight="bold" color="#FF4500">{entry.score}</text>
+                  <text size="small" weight="bold" color="#38BDF8">{entry.score}</text>
                 </hstack>
               ))}
             </vstack>
@@ -436,8 +436,8 @@ Devvit.addMenuItem({
       title: "\u{1F441} Eyes of Panoptes \u2014 Defend Your Subreddit!",
       subredditName: sub.name,
       preview: (
-        <vstack padding="large" alignment="center middle" backgroundColor="#1A1714" height="100%">
-          <text size="xlarge" color="#FF4500" weight="bold">Loading game...</text>
+        <vstack padding="large" alignment="center middle" backgroundColor="#0B1120" height="100%">
+          <text size="xlarge" color="#38BDF8" weight="bold">Loading game...</text>
         </vstack>
       ),
     });
