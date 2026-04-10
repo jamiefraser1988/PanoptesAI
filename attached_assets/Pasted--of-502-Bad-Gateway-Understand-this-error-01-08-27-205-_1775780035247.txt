@@ -1,0 +1,19 @@
+ of 502 (Bad Gateway)Understand this error
+01:08:27.205 api/decisions?content_type=all&page=1&limit=20&sort_by=score:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:29.373 api/decisions?content_type=all&page=1&limit=20&sort_by=score:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:29.614 api/stats?timeframe=24h:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:31.100 api/stats?timeframe=24h:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:31.912 api/decisions?limit=3&sort_by=date&page=1:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:33.037 api/decisions?limit=3&sort_by=date&page=1:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:35.166 api/decisions?limit=3&sort_by=date&page=1:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:39.301 api/decisions?limit=3&sort_by=date&page=1:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:43.431 api/stats?timeframe=24h:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:44.561 api/stats?timeframe=24h:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+01:08:46.776 custom-fetch.ts:363  GET https://9bd8e0fc-6706-4137-930c-0ff54d31a9ce-00-2kblhxl2vdpru.riker.replit.dev/api/stats?timeframe=24h 502 (Bad Gateway)
+customFetch @ custom-fetch.ts:363
+getStats @ api.ts:320
+queryFn @ api.ts:350
+fetchFn @ query.ts:474
+run @ retryer.ts:155
+(anonymous) @ retryer.ts:201Understand this error
+01:08:50.919 custom-fetch.ts:363  GET https://9bd8e0fc-6706-4137-930c-0ff54d31a9ce-00-2kblhxl2vdpru.riker.replit.dev/api/stats?timeframe=24h 502 (Bad Gateway)
