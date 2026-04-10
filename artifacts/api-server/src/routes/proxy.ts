@@ -214,6 +214,18 @@ router.get("/decisions", async (req, res): Promise<void> => {
 
     res.json(response);
   } catch (err) {
+    const isConnectionRefused = err instanceof TypeError && String(err.message).includes("ECONNREFUSED");
+    if (isConnectionRefused) {
+      req.log.warn("FastAPI backend unavailable — returning empty decisions");
+      const response = ListDecisionsResponse.parse({
+        items: [],
+        total: 0,
+        page: params.data.page ?? 1,
+        total_pages: 1,
+      });
+      res.json(response);
+      return;
+    }
     req.log.error({ err }, "Failed to fetch decisions from FastAPI");
     res.status(502).json({ error: "Failed to fetch from backend" });
   }
@@ -262,6 +274,18 @@ router.get("/comment-decisions", async (req, res): Promise<void> => {
 
     res.json(response);
   } catch (err) {
+    const isConnectionRefused = err instanceof TypeError && String(err.message).includes("ECONNREFUSED");
+    if (isConnectionRefused) {
+      req.log.warn("FastAPI backend unavailable — returning empty comment-decisions");
+      const response = ListDecisionsResponse.parse({
+        items: [],
+        total: 0,
+        page: params.data.page ?? 1,
+        total_pages: 1,
+      });
+      res.json(response);
+      return;
+    }
     req.log.error({ err }, "Failed to fetch comment-decisions from FastAPI");
     res.status(502).json({ error: "Failed to fetch comment decisions from backend" });
   }
@@ -341,6 +365,21 @@ router.get("/stats", async (req, res): Promise<void> => {
 
     res.json(result);
   } catch (err) {
+    const isConnectionRefused = err instanceof TypeError && String(err.message).includes("ECONNREFUSED");
+    if (isConnectionRefused) {
+      req.log.warn("FastAPI backend unavailable — returning empty stats");
+      const result = GetStatsResponse.parse({
+        total_posts: 0,
+        flagged_posts: 0,
+        mean_score: 0,
+        false_positive_count: 0,
+        pending_review_count: 0,
+        by_subreddit: [],
+        daily_activity: [],
+      });
+      res.json(result);
+      return;
+    }
     req.log.error({ err }, "Failed to fetch stats from FastAPI");
     res.status(502).json({ error: "Failed to fetch stats" });
   }
