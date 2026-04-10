@@ -1,2 +1,6 @@
 name: panoptes-ai
-version: 0.0.1
+version: 0.0.2
+capabilities:
+  fetch:
+    allowedDomains:
+      - workspace-jfwizkid.replit.app
