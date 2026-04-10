@@ -85,43 +85,43 @@ export default function Config() {
   const fpRate = Math.round((100 - threshold[0]) * 0.3);
 
   return (
-    <div className="flex flex-col h-full gap-6 pb-12">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full gap-4 md:gap-6 pb-12">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Configuration</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage system thresholds and integrations.</p>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">Configuration</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">Manage system thresholds and integrations.</p>
         </div>
-        <Button onClick={handleSave} disabled={saveConfig.isPending} data-testid="btn-save-config">
+        <Button onClick={handleSave} disabled={saveConfig.isPending} data-testid="btn-save-config" className="self-start min-h-[44px] md:min-h-0">
           <Save className="w-4 h-4 mr-2" />
           Save Changes
         </Button>
       </div>
 
       <Card className={actionMode === "active" ? "border-red-500/50 bg-red-500/5" : "border-green-500/50 bg-green-500/5"}>
-        <CardContent className="py-5">
-          <div className="flex items-center justify-between">
+        <CardContent className="py-4 md:py-5 px-3 md:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {actionMode === "monitor" ? (
-                <div className="p-2 rounded-lg bg-green-500/10">
+                <div className="p-2 rounded-lg bg-green-500/10 shrink-0">
                   <Eye className="w-5 h-5 text-green-500" />
                 </div>
               ) : (
-                <div className="p-2 rounded-lg bg-red-500/10">
+                <div className="p-2 rounded-lg bg-red-500/10 shrink-0">
                   <Shield className="w-5 h-5 text-red-500" />
                 </div>
               )}
               <div>
-                <div className="font-semibold text-foreground">
+                <div className="font-semibold text-foreground text-sm md:text-base">
                   {actionMode === "monitor" ? "Monitor Only" : "Active Enforcement"}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {actionMode === "monitor"
-                    ? "System scans, scores, and flags content but takes no mod actions. Safe for testing on live subreddits."
-                    : "System will take automated mod actions (report/remove) on content above the threshold."}
+                    ? "Scans and flags content but takes no mod actions."
+                    : "Automated mod actions on content above threshold."}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 self-end sm:self-auto">
               <span className="text-xs text-muted-foreground">{actionMode === "monitor" ? "Monitoring" : "Active"}</span>
               <Switch
                 checked={actionMode === "active"}
@@ -133,13 +133,13 @@ export default function Config() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Detection Threshold</CardTitle>
-            <CardDescription>Adjust the sensitivity of the Scam Sentry bot.</CardDescription>
+          <CardHeader className="px-3 md:px-6">
+            <CardTitle className="text-sm md:text-base">Detection Threshold</CardTitle>
+            <CardDescription className="text-xs">Adjust the sensitivity of the Scam Sentry bot.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 px-3 md:px-6">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-medium">Risk Score Threshold: {threshold[0]}</label>
@@ -160,45 +160,46 @@ export default function Config() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+            <div className="grid grid-cols-2 gap-3 md:gap-4 pt-4 border-t border-border">
               <div className="bg-accent/30 p-3 rounded-md">
-                <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Est. Catch Rate</div>
-                <div className="text-xl font-bold text-green-500">{catchRate}%</div>
+                <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">Est. Catch Rate</div>
+                <div className="text-lg md:text-xl font-bold text-green-500">{catchRate}%</div>
               </div>
               <div className="bg-accent/30 p-3 rounded-md">
-                <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Est. False Positive</div>
-                <div className="text-xl font-bold text-red-500">{fpRate}%</div>
+                <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">Est. False Positive</div>
+                <div className="text-lg md:text-xl font-bold text-red-500">{fpRate}%</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Watched Subreddits</CardTitle>
-            <CardDescription>Subreddits monitored by the system.</CardDescription>
+          <CardHeader className="px-3 md:px-6">
+            <CardTitle className="text-sm md:text-base">Watched Subreddits</CardTitle>
+            <CardDescription className="text-xs">Subreddits monitored by the system.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-3 md:px-6">
             <div className="flex gap-2">
               <Input 
                 placeholder="subreddit_name" 
                 value={newSubreddit} 
                 onChange={(e) => setNewSubreddit(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddSubreddit()}
+                className="h-10 md:h-9"
                 data-testid="input-add-subreddit"
               />
-              <Button type="button" variant="secondary" onClick={handleAddSubreddit} data-testid="btn-add-subreddit">
+              <Button type="button" variant="secondary" onClick={handleAddSubreddit} className="h-10 md:h-9 min-w-[44px]" data-testid="btn-add-subreddit">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
             
             <div className="flex flex-wrap gap-2 mt-4">
               {subreddits.map(sub => (
-                <Badge key={sub} variant="secondary" className="px-3 py-1 text-sm bg-accent hover:bg-accent group flex items-center gap-2">
+                <Badge key={sub} variant="secondary" className="px-3 py-1.5 md:py-1 text-sm bg-accent hover:bg-accent group flex items-center gap-2">
                   r/{sub}
                   <button 
                     onClick={() => handleRemoveSubreddit(sub)}
-                    className="text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
+                    className="text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity p-1"
                     data-testid={`btn-remove-subreddit-${sub}`}
                   >
                     <X className="w-3 h-3" />
@@ -213,19 +214,19 @@ export default function Config() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Integration Hub</CardTitle>
-            <CardDescription>Configure external notifications and webhooks.</CardDescription>
+          <CardHeader className="px-3 md:px-6">
+            <CardTitle className="text-sm md:text-base">Integration Hub</CardTitle>
+            <CardDescription className="text-xs">Configure external notifications and webhooks.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-3 md:px-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Alert Webhook URL</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input 
                   placeholder="https://hooks.slack.com/services/..." 
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
-                  className="font-mono text-xs"
+                  className="font-mono text-xs h-10 md:h-9 flex-1"
                   data-testid="input-webhook"
                 />
                 <Button 
@@ -233,6 +234,7 @@ export default function Config() {
                   variant="outline" 
                   onClick={handleTestWebhook}
                   disabled={!webhookUrl || testWebhook.isPending}
+                  className="h-10 md:h-9 min-h-[44px] md:min-h-0"
                   data-testid="btn-test-webhook"
                 >
                   <Webhook className="w-4 h-4 mr-2" />
@@ -247,15 +249,15 @@ export default function Config() {
         </Card>
 
         <Card className="border-destructive/30">
-          <CardHeader>
-            <CardTitle className="text-destructive">System Overrides</CardTitle>
-            <CardDescription>Emergency actions. Use with caution.</CardDescription>
+          <CardHeader className="px-3 md:px-6">
+            <CardTitle className="text-destructive text-sm md:text-base">System Overrides</CardTitle>
+            <CardDescription className="text-xs">Emergency actions. Use with caution.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+          <CardContent className="space-y-4 px-3 md:px-6">
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
               <Button 
                 variant="destructive" 
-                className="w-full"
+                className="w-full min-h-[44px] md:min-h-0"
                 onClick={() => toast.success("System halted. No new posts will be analyzed.")}
                 data-testid="btn-halt-system"
               >
@@ -264,7 +266,7 @@ export default function Config() {
               </Button>
               <Button 
                 variant="outline" 
-                className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive min-h-[44px] md:min-h-0"
                 onClick={() => toast.success("System soft reset initiated.")}
                 data-testid="btn-soft-reset"
               >
@@ -276,14 +278,14 @@ export default function Config() {
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="px-3 md:px-6">
             <div className="flex items-center gap-2">
               <Flag className="w-4 h-4 text-primary" />
-              <CardTitle>Latest Flagged</CardTitle>
+              <CardTitle className="text-sm md:text-base">Latest Flagged</CardTitle>
             </div>
-            <CardDescription>The 3 most recently flagged items across all monitored subreddits.</CardDescription>
+            <CardDescription className="text-xs">The 3 most recently flagged items across all monitored subreddits.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 md:px-6">
             {flaggedLoading ? (
               <div className="py-4 text-center text-sm text-muted-foreground">Loading...</div>
             ) : !recentFlagged?.items?.length ? (
@@ -291,11 +293,13 @@ export default function Config() {
             ) : (
               <div className="divide-y divide-border">
                 {recentFlagged.items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 py-3" data-testid={`latest-flagged-${item.id}`}>
-                    <Badge variant="outline" className={`font-mono text-xs shrink-0 ${getScoreColor(item.score)}`}>
-                      {item.score} RISK
-                    </Badge>
-                    <span className="text-xs text-muted-foreground shrink-0">r/{item.subreddit}</span>
+                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 py-3" data-testid={`latest-flagged-${item.id}`}>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={`font-mono text-xs shrink-0 ${getScoreColor(item.score)}`}>
+                        {item.score} RISK
+                      </Badge>
+                      <span className="text-xs text-muted-foreground shrink-0">r/{item.subreddit}</span>
+                    </div>
                     <span className="text-sm text-foreground truncate flex-1">{item.title}</span>
                     <span className="text-xs text-muted-foreground shrink-0">
                       {new Date(item.decided_at * 1000).toLocaleString()}

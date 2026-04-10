@@ -115,75 +115,79 @@ export default function Queue() {
   const totalPages = data?.total_pages ?? 1;
 
   return (
-    <div className="flex flex-col h-full gap-6">
+    <div className="flex flex-col h-full gap-4 md:gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Flagged Queue</h1>
-          <p className="text-sm text-muted-foreground mt-1">Review flagged content and train the model.</p>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">Flagged Queue</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">Review flagged content and train the model.</p>
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-lg p-4 flex flex-col sm:flex-row gap-4 items-end sm:items-center">
-        <div className="flex-1 w-full space-y-2">
-          <label className="text-xs font-medium text-muted-foreground flex items-center gap-2"><Search className="w-3 h-3" /> Subreddit</label>
-          <Input
-            placeholder="Search subreddit..."
-            value={subreddit}
-            onChange={(e) => { setSubreddit(e.target.value); resetFilters(); }}
-            className="h-9"
-            data-testid="input-subreddit"
-          />
-        </div>
-        <div className="w-full sm:w-48 space-y-3">
-          <label className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-            <span className="flex items-center gap-2"><Filter className="w-3 h-3" /> Min Score</span>
-            <span>{minScore[0]}</span>
-          </label>
-          <Slider
-            value={minScore}
-            onValueChange={(v) => { setMinScore(v); resetFilters(); }}
-            max={100}
-            step={5}
-            className="my-2"
-            data-testid="slider-min-score"
-          />
-        </div>
-        <div className="w-full sm:w-auto space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Type</label>
-          <div className="flex h-9 rounded-md border border-border overflow-hidden">
-            {(["all", "posts", "comments"] as ContentType[]).map((type) => (
-              <button
-                key={type}
-                onClick={() => { setContentType(type); resetFilters(); }}
-                className={`px-3 text-xs capitalize transition-colors ${
-                  contentType === type
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background text-muted-foreground hover:text-foreground hover:bg-accent/10"
-                }`}
-                data-testid={`toggle-type-${type}`}
-              >
-                {type === "all" ? "All" : type === "posts" ? "Posts" : "Comments"}
-              </button>
-            ))}
+      <div className="bg-card border border-border rounded-lg p-3 md:p-4 flex flex-col gap-3 md:gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 items-stretch sm:items-end">
+          <div className="flex-1 w-full space-y-2">
+            <label className="text-xs font-medium text-muted-foreground flex items-center gap-2"><Search className="w-3 h-3" /> Subreddit</label>
+            <Input
+              placeholder="Search subreddit..."
+              value={subreddit}
+              onChange={(e) => { setSubreddit(e.target.value); resetFilters(); }}
+              className="h-10 md:h-9"
+              data-testid="input-subreddit"
+            />
+          </div>
+          <div className="w-full sm:w-48 space-y-3">
+            <label className="text-xs font-medium text-muted-foreground flex items-center justify-between">
+              <span className="flex items-center gap-2"><Filter className="w-3 h-3" /> Min Score</span>
+              <span>{minScore[0]}</span>
+            </label>
+            <Slider
+              value={minScore}
+              onValueChange={(v) => { setMinScore(v); resetFilters(); }}
+              max={100}
+              step={5}
+              className="my-2"
+              data-testid="slider-min-score"
+            />
           </div>
         </div>
-        <div className="w-full sm:w-auto space-y-2">
-          <label className="text-xs font-medium text-muted-foreground flex items-center gap-2"><ArrowDownUp className="w-3 h-3" /> Sort</label>
-          <div className="flex h-9 rounded-md border border-border overflow-hidden">
-            {(["score", "date"] as SortBy[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => { setSortBy(s); resetFilters(); }}
-                className={`px-3 text-xs capitalize transition-colors ${
-                  sortBy === s
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background text-muted-foreground hover:text-foreground hover:bg-accent/10"
-                }`}
-                data-testid={`toggle-sort-${s}`}
-              >
-                {s === "score" ? "Highest Risk" : "Most Recent"}
-              </button>
-            ))}
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 items-stretch sm:items-end">
+          <div className="w-full sm:w-auto space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Type</label>
+            <div className="flex h-10 md:h-9 rounded-md border border-border overflow-hidden">
+              {(["all", "posts", "comments"] as ContentType[]).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => { setContentType(type); resetFilters(); }}
+                  className={`flex-1 sm:flex-none px-3 text-xs capitalize transition-colors min-h-[44px] md:min-h-0 ${
+                    contentType === type
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:text-foreground hover:bg-accent/10"
+                  }`}
+                  data-testid={`toggle-type-${type}`}
+                >
+                  {type === "all" ? "All" : type === "posts" ? "Posts" : "Comments"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="w-full sm:w-auto space-y-2">
+            <label className="text-xs font-medium text-muted-foreground flex items-center gap-2"><ArrowDownUp className="w-3 h-3" /> Sort</label>
+            <div className="flex h-10 md:h-9 rounded-md border border-border overflow-hidden">
+              {(["score", "date"] as SortBy[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => { setSortBy(s); resetFilters(); }}
+                  className={`flex-1 sm:flex-none px-3 text-xs capitalize transition-colors min-h-[44px] md:min-h-0 ${
+                    sortBy === s
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:text-foreground hover:bg-accent/10"
+                  }`}
+                  data-testid={`toggle-sort-${s}`}
+                >
+                  {s === "score" ? "Highest Risk" : "Most Recent"}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -202,8 +206,8 @@ export default function Queue() {
               const aiReasonSignals = (item.ai_signals && item.ai_signals.length > 0) ? item.ai_signals : [];
 
               return (
-                <div key={item.id} className="bg-card border border-border rounded-lg p-4 transition-all hover:bg-accent/5" data-testid={`card-decision-${item.id}`}>
-                  <div className="flex justify-between items-start gap-4">
+                <div key={item.id} className="bg-card border border-border rounded-lg p-3 md:p-4 transition-all hover:bg-accent/5" data-testid={`card-decision-${item.id}`}>
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 md:gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <Badge variant="outline" className={`font-mono text-xs ${getScoreColor(item.score)}`}>
@@ -218,13 +222,13 @@ export default function Queue() {
                         <Badge variant="secondary" className="text-xs capitalize">
                           {item.content_type || "post"}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">r/{item.subreddit}</span>
-                        <span className="text-xs text-muted-foreground mx-1">•</span>
-                        <span className="text-xs text-muted-foreground">u/{item.author}</span>
-                        <span className="text-xs text-muted-foreground mx-1">•</span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(item.decided_at * 1000).toLocaleString()}
-                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mb-2">
+                        <span>r/{item.subreddit}</span>
+                        <span>·</span>
+                        <span>u/{item.author}</span>
+                        <span>·</span>
+                        <span>{new Date(item.decided_at * 1000).toLocaleString()}</span>
                       </div>
                       <h3 className="font-medium text-foreground text-sm line-clamp-2 leading-relaxed mb-3">
                         {item.title}
@@ -271,23 +275,23 @@ export default function Queue() {
                       )}
                     </div>
 
-                    <div className="flex flex-col items-end gap-3 shrink-0">
+                    <div className="flex flex-row md:flex-col items-center md:items-end gap-3 shrink-0 pt-1 border-t md:border-t-0 border-border md:pt-0">
                       <a
                         href={`https://reddit.com/comments/${item.post_id}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+                        className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-colors min-h-[44px] md:min-h-0"
                         data-testid={`link-reddit-${item.id}`}
                       >
                         <SiReddit className="w-3 h-3" /> View
                         <ExternalLink className="w-3 h-3" />
                       </a>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 ml-auto md:ml-0">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 border-green-500/30 text-green-500 hover:bg-green-500/10 hover:text-green-400"
+                          className="h-10 md:h-8 px-3 border-green-500/30 text-green-500 hover:bg-green-500/10 hover:text-green-400"
                           onClick={() => handleFeedback(item.post_id, "false_positive")}
                           disabled={effectiveFeedback === "false_positive" || submitFeedback.isPending}
                           data-testid={`btn-false-positive-${item.id}`}
@@ -298,7 +302,7 @@ export default function Queue() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+                          className="h-10 md:h-8 px-3 border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400"
                           onClick={() => handleFeedback(item.post_id, "true_positive")}
                           disabled={effectiveFeedback === "true_positive" || submitFeedback.isPending}
                           data-testid={`btn-true-positive-${item.id}`}
@@ -316,7 +320,7 @@ export default function Queue() {
             {page < totalPages && (
               <Button
                 variant="outline"
-                className="mt-4 w-full"
+                className="mt-4 w-full min-h-[44px]"
                 onClick={handleLoadMore}
                 disabled={isLoading}
                 data-testid="btn-load-more"

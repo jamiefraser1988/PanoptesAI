@@ -35,8 +35,8 @@ function RecentHighRiskItems() {
           <div className="py-8 text-center text-sm text-muted-foreground">No flagged items found.</div>
         ) : (
           data.items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-accent/5 transition-colors">
-              <div className="flex items-center gap-3 min-w-0">
+            <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 px-3 md:px-4 py-3 hover:bg-accent/5 transition-colors">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <Badge variant="outline" className={`font-mono text-xs shrink-0 ${getScoreColor(item.score)}`}>
                   {item.score}
                 </Badge>
@@ -44,7 +44,7 @@ function RecentHighRiskItems() {
                 <span className="text-sm text-foreground truncate">{item.title}</span>
               </div>
               <Link href="/dashboard">
-                <span className="text-xs text-primary hover:text-primary/80 shrink-0 cursor-pointer">View &rarr;</span>
+                <span className="text-xs text-primary hover:text-primary/80 shrink-0 cursor-pointer min-h-[44px] md:min-h-0 flex items-center">View &rarr;</span>
               </Link>
             </div>
           ))
@@ -58,29 +58,29 @@ export default function Home({ isSignedIn = false }: { isSignedIn?: boolean }) {
   if (isSignedIn) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-card/50">
+        <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 border-b border-border bg-card/50">
           <div className="flex items-center gap-2">
             <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-7 h-7 object-contain" />
             <h1 className="font-bold text-lg tracking-tight">
               <span className="text-primary">Panoptes</span>AI
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 md:gap-3">
             <Link href="/dashboard">
-              <Button variant="ghost" size="sm">Queue</Button>
+              <Button variant="ghost" size="sm" className="text-xs md:text-sm px-2 md:px-3 min-h-[44px]">Queue</Button>
             </Link>
             <Link href="/analytics">
-              <Button variant="ghost" size="sm">Analytics</Button>
+              <Button variant="ghost" size="sm" className="text-xs md:text-sm px-2 md:px-3 min-h-[44px]">Analytics</Button>
             </Link>
             <Link href="/config">
-              <Button variant="ghost" size="sm">Config</Button>
+              <Button variant="ghost" size="sm" className="text-xs md:text-sm px-2 md:px-3 min-h-[44px]">Config</Button>
             </Link>
           </div>
         </header>
-        <main className="flex-1 flex flex-col items-center px-6 py-12">
+        <main className="flex-1 flex flex-col items-center px-4 md:px-6 py-8 md:py-12">
           <div className="w-full max-w-4xl">
-            <h2 className="text-2xl font-bold text-foreground mb-1">Welcome back</h2>
-            <p className="text-sm text-muted-foreground mb-8">Here's a snapshot of what's happening across your monitored subreddits.</p>
+            <h2 className="text-xl md:text-2xl font-bold text-foreground mb-1">Welcome back</h2>
+            <p className="text-xs md:text-sm text-muted-foreground mb-6 md:mb-8">Here's a snapshot of what's happening across your monitored subreddits.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
               <Link href="/dashboard">
                 <div className="p-4 rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors cursor-pointer flex items-center gap-3">
@@ -119,26 +119,26 @@ export default function Home({ isSignedIn = false }: { isSignedIn?: boolean }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-card/50">
+      <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 border-b border-border bg-card/50">
         <div className="flex items-center gap-2">
           <img src={`${basePath}/logo.png`} alt="PanoptesAI" className="w-7 h-7 object-contain" />
           <h1 className="font-bold text-lg tracking-tight">
             <span className="text-primary">Panoptes</span>AI
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <Link href="/sign-in">
-            <Button variant="ghost" size="sm">Sign In</Button>
+            <Button variant="ghost" size="sm" className="min-h-[44px] text-xs md:text-sm">Sign In</Button>
           </Link>
           <Link href="/sign-up">
-            <Button size="sm">
+            <Button size="sm" className="min-h-[44px] text-xs md:text-sm">
               Get Started <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </Link>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 py-10 md:py-16">
         <div className="max-w-3xl text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4">
             <Zap className="w-3 h-3" />
