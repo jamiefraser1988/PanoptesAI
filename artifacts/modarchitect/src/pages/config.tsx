@@ -122,12 +122,14 @@ export default function Config() {
               </div>
             </div>
             <div className="flex items-center gap-3 self-end sm:self-auto">
-              <span className="text-xs text-muted-foreground">{actionMode === "monitor" ? "Monitoring" : "Active"}</span>
-              <Switch
-                checked={actionMode === "active"}
-                onCheckedChange={(checked) => setActionMode(checked ? "active" : "monitor")}
-                data-testid="switch-action-mode"
-              />
+              <label className="flex items-center gap-3 min-h-[44px] cursor-pointer">
+                <span className="text-xs text-muted-foreground">{actionMode === "monitor" ? "Monitoring" : "Active"}</span>
+                <Switch
+                  checked={actionMode === "active"}
+                  onCheckedChange={(checked) => setActionMode(checked ? "active" : "monitor")}
+                  data-testid="switch-action-mode"
+                />
+              </label>
             </div>
           </div>
         </CardContent>
