@@ -402,28 +402,40 @@ router.get("/stats", async (req, res): Promise<void> => {
       ? (fastapiData.daily_activity as Array<{date: string; subreddit: string; count: number}>)
       : [];
 
+    const flag_rate_pct = totalPosts > 0 ? Math.round((totalFlagged / totalPosts) * 100) : 0;
+    const top_reasons = Array.isArray(fastapiData.top_reasons)
+      ? (fastapiData.top_reasons as Array<{reason: string; count: number}>)
+      : [];
+
     const result = GetStatsResponse.parse({
       ...fastapiData,
       mean_score,
       false_positive_count,
       pending_review_count,
       daily_activity,
+      flag_rate_pct,
+      top_reasons,
     });
 
     res.json(result);
   } catch (err) {
     if (isConnectionRefused(err)) {
       req.log.info("FastAPI backend unavailable — returning empty stats");
-      const result = GetStatsResponse.parse({
+      const parsed = GetStatsResponse.safeParse({
         total_posts: 0,
         flagged_posts: 0,
+        flag_rate_pct: 0,
         mean_score: 0,
         false_positive_count: 0,
         pending_review_count: 0,
         by_subreddit: [],
+        top_reasons: [],
         daily_activity: [],
       });
-      res.json(result);
+      res.json(parsed.success ? parsed.data : {
+        total_posts: 0, flagged_posts: 0, flag_rate_pct: 0, mean_score: 0,
+        false_positive_count: 0, pending_review_count: 0, by_subreddit: [], top_reasons: [], daily_activity: [],
+      });
       return;
     }
     req.log.error({ err }, "Failed to fetch stats from FastAPI");
