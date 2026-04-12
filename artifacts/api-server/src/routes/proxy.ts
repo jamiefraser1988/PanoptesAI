@@ -230,6 +230,54 @@ router.get("/decisions", async (req, res): Promise<void> => {
     const total = hasMore ? (current_page * per_page) + 1 : offset + items.length;
     const total_pages = hasMore ? current_page + 1 : Math.max(1, Math.ceil(total / per_page));
 
+    if (pageItems.length === 0 && !hasMore) {
+      req.log.info("FastAPI returned no decisions — checking local DB for seeded data");
+      try {
+        const dbConditions = [];
+        if (subreddit) dbConditions.push(eq(modActionsTable.subreddit, subreddit));
+        if (content_type && content_type !== "all") {
+          dbConditions.push(eq(modActionsTable.targetType, content_type === "posts" ? "post" : "comment"));
+        }
+        const dbRows = await db
+          .select()
+          .from(modActionsTable)
+          .where(dbConditions.length > 0 ? and(...dbConditions) : undefined)
+          .orderBy(desc(modActionsTable.createdAt))
+          .limit(per_page + 1)
+          .offset(offset);
+        const dbHasMore = dbRows.length > per_page;
+        const dbPageRows = dbRows.slice(0, per_page);
+        const dbItems = dbPageRows
+          .map((row) => {
+            const d = (row.details ?? {}) as Record<string, unknown>;
+            const score = typeof d.score === "number" ? d.score : 0;
+            if (min_score && score < min_score) return null;
+            return {
+              id: row.id,
+              post_id: row.targetId,
+              subreddit: row.subreddit ?? "",
+              author: row.author ?? "",
+              title: typeof d.title === "string" ? d.title : "",
+              score,
+              reasons: Array.isArray(d.reasons) ? (d.reasons as string[]) : [],
+              flagged: score >= 40,
+              decided_at: Math.floor(row.createdAt.getTime() / 1000),
+              feedback: null,
+              content_type: (row.targetType === "comment" ? "comment" : "post") as "post" | "comment",
+            };
+          })
+          .filter(Boolean);
+        if (dbItems.length > 0) {
+          const dbTotal = dbHasMore ? offset + per_page + 1 : offset + dbItems.length;
+          const dbTotalPages = dbHasMore ? current_page + 1 : Math.max(1, Math.ceil(dbTotal / per_page));
+          res.json(ListDecisionsResponse.parse({ items: dbItems, total: dbTotal, page: current_page, total_pages: dbTotalPages }));
+          return;
+        }
+      } catch (dbErr) {
+        req.log.warn({ dbErr }, "DB empty-fallback for decisions failed");
+      }
+    }
+
     const response = ListDecisionsResponse.parse({
       items: pageItems,
       total,
@@ -462,6 +510,68 @@ router.get("/stats", async (req, res): Promise<void> => {
       flag_rate_pct,
       top_reasons,
     });
+
+    if (totalPosts === 0) {
+      req.log.info("FastAPI returned zero-data stats — checking local DB for seeded data");
+      try {
+        const rows = await db.select().from(modActionsTable).orderBy(desc(modActionsTable.createdAt)).limit(1000);
+        if (rows.length > 0) {
+          const db_total = rows.length;
+          const dbFlagged = rows.filter((r) => {
+            const d = (r.details ?? {}) as Record<string, unknown>;
+            return typeof d.score === "number" && (d.score as number) >= 40;
+          });
+          const db_flagged = dbFlagged.length;
+          const db_flag_rate = Math.round((db_flagged / db_total) * 100);
+          const db_mean = Math.round(rows.reduce((s, r) => {
+            const d = (r.details ?? {}) as Record<string, unknown>;
+            return s + (typeof d.score === "number" ? (d.score as number) : 0);
+          }, 0) / db_total);
+          const subMap: Record<string, { total: number; flagged: number }> = {};
+          for (const r of rows) {
+            const sub = r.subreddit ?? "unknown";
+            if (!subMap[sub]) subMap[sub] = { total: 0, flagged: 0 };
+            subMap[sub].total++;
+            const d = (r.details ?? {}) as Record<string, unknown>;
+            if (typeof d.score === "number" && (d.score as number) >= 40) subMap[sub].flagged++;
+          }
+          const reasonMap: Record<string, number> = {};
+          for (const r of rows) {
+            const d = (r.details ?? {}) as Record<string, unknown>;
+            const reasons = Array.isArray(d.reasons) ? (d.reasons as string[]) : [];
+            for (const reason of reasons) {
+              if (reason !== "No suspicious signals detected") reasonMap[reason] = (reasonMap[reason] ?? 0) + 1;
+            }
+          }
+          const dailyMap: Record<string, Record<string, number>> = {};
+          for (const r of rows) {
+            const date = r.createdAt.toISOString().slice(0, 10);
+            const sub = r.subreddit ?? "unknown";
+            if (!dailyMap[date]) dailyMap[date] = {};
+            dailyMap[date][sub] = (dailyMap[date][sub] ?? 0) + 1;
+          }
+          const dbParsed = GetStatsResponse.safeParse({
+            total_posts: db_total,
+            flagged_posts: db_flagged,
+            flag_rate_pct: db_flag_rate,
+            mean_score: db_mean,
+            false_positive_count: 0,
+            pending_review_count: db_flagged,
+            by_subreddit: Object.entries(subMap).map(([subreddit, v]) => ({ subreddit, ...v })),
+            top_reasons: Object.entries(reasonMap).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([reason, count]) => ({ reason, count })),
+            daily_activity: Object.entries(dailyMap).flatMap(([date, subs]) =>
+              Object.entries(subs).map(([subreddit, count]) => ({ date, subreddit, count }))
+            ),
+          });
+          if (dbParsed.success) {
+            res.json(dbParsed.data);
+            return;
+          }
+        }
+      } catch (dbErr) {
+        req.log.warn({ dbErr }, "DB empty-fallback for stats failed");
+      }
+    }
 
     res.json(result);
   } catch (err) {
@@ -950,7 +1060,7 @@ router.post("/seed-demo", async (req, res): Promise<void> => {
     await db.insert(modActionsTable).values(seedRows as typeof modActionsTable.$inferInsert[]);
 
     logger.info({ tenantId: tenant.id, count: seedRows.length }, "Seeded demo data");
-    res.json({ message: "Demo data loaded successfully", inserted: seedRows.length });
+    res.json({ success: true, count: seedRows.length, message: `Inserted ${seedRows.length} demo scan results` });
   } catch (err) {
     logger.error({ err }, "Failed to seed demo data");
     res.status(500).json({ error: "Failed to seed demo data" });
@@ -1001,204 +1111,6 @@ router.get("/user-profile/:author", async (req, res): Promise<void> => {
   } catch (err) {
     logger.error({ err }, "Failed to fetch user profile");
     res.status(500).json({ error: "Failed to fetch user profile" });
-  }
-});
-
-router.post("/seed-demo", async (req, res): Promise<void> => {
-  try {
-    const auth = getAuth(req);
-    const userId = auth?.sessionClaims?.userId || auth?.userId;
-    if (!userId) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
-    const tenant = await getOrCreateTenant(userId);
-
-    const now = Date.now();
-    const day = 86400000;
-
-    const demoRows = [
-      {
-        action: "remove",
-        targetId: "demo_t3_abc001",
-        targetType: "post",
-        author: "CryptoHelper9274",
-        subreddit: "CryptoGeneral",
-        details: {
-          score: 85,
-          reasons: ['Scam keyword: "dm me"', 'Scam keyword: "guaranteed profit"', 'Scam keyword: "wallet recovery"'],
-          title: "I recovered $40k in lost ETH — DM me for my recovery agent contact",
-          body: "DM me for wallet recovery, guaranteed returns, trusted agent...",
-          permalink: "/r/CryptoGeneral/comments/abc001/",
-          flagged: true,
-        },
-        createdAt: new Date(now - 1 * day),
-      },
-      {
-        action: "remove",
-        targetId: "demo_t3_abc002",
-        targetType: "post",
-        author: "HelpDesk_Official8821",
-        subreddit: "techsupport",
-        details: {
-          score: 90,
-          reasons: ['Scam keyword: "tech support"', 'Scam keyword: "verify your account"', 'Scam keyword: "urgent"', "Author name ends with many digits (bot pattern)"],
-          title: "URGENT: Your Microsoft account will be suspended — verify now",
-          body: "Click here to verify your account or access will be revoked...",
-          permalink: "/r/techsupport/comments/abc002/",
-          flagged: true,
-        },
-        createdAt: new Date(now - 1.5 * day),
-      },
-      {
-        action: "remove",
-        targetId: "demo_t3_abc003",
-        targetType: "comment",
-        author: "ProfitTrader2025",
-        subreddit: "investing",
-        details: {
-          score: 75,
-          reasons: ['Scam keyword: "guaranteed returns"', 'Scam keyword: "passive income"', 'Scam keyword: "investment opportunity"'],
-          title: "Re: Anyone use automated trading bots?",
-          body: "I made $5k last week with passive income strategy. Guaranteed returns. DM for details.",
-          permalink: "/r/investing/comments/abc003/",
-          flagged: true,
-        },
-        createdAt: new Date(now - 2 * day),
-      },
-      {
-        action: "review",
-        targetId: "demo_t3_abc004",
-        targetType: "post",
-        author: "GiftCardHelper",
-        subreddit: "giftcards",
-        details: {
-          score: 55,
-          reasons: ['Scam keyword: "act now"', 'Scam keyword: "limited time"'],
-          title: "Limited time offer — trade your unused gift cards here",
-          body: "Act now while supplies last! Limited time exchange rates...",
-          permalink: "/r/giftcards/comments/abc004/",
-          flagged: true,
-        },
-        createdAt: new Date(now - 2.5 * day),
-      },
-      {
-        action: "review",
-        targetId: "demo_t3_abc005",
-        targetType: "post",
-        author: "BitcoinFanatic",
-        subreddit: "Bitcoin",
-        details: {
-          score: 45,
-          reasons: ['Scam keyword: "free bitcoin"', "Excessive links in content"],
-          title: "Check out this faucet site — I've been using it for months",
-          body: "Free Bitcoin faucet — check these links: http://bit.ly/abc http://bit.ly/def http://bit.ly/ghi http://tinyurl.com/xyz",
-          permalink: "/r/Bitcoin/comments/abc005/",
-          flagged: true,
-        },
-        createdAt: new Date(now - 3 * day),
-      },
-      {
-        action: "review",
-        targetId: "demo_t3_abc006",
-        targetType: "comment",
-        author: "OnlyFansPromo99",
-        subreddit: "AskReddit",
-        details: {
-          score: 60,
-          reasons: ['Scam keyword: "onlyfans"', 'Scam keyword: "🔥 link in bio"'],
-          title: "Re: What's everyone doing this weekend?",
-          body: "Check my profile! 🔥 link in bio — exclusive content on OnlyFans",
-          permalink: "/r/AskReddit/comments/abc006/",
-          flagged: true,
-        },
-        createdAt: new Date(now - 3.5 * day),
-      },
-      {
-        action: "review",
-        targetId: "demo_t3_abc007",
-        targetType: "post",
-        author: "WesternUnionAgent",
-        subreddit: "personalfinance",
-        details: {
-          score: 65,
-          reasons: ['Scam keyword: "wire transfer"', 'Scam keyword: "western union"', 'Scam keyword: "send me"'],
-          title: "Need help with international wire transfer — anyone used Western Union?",
-          body: "Send me your details and I can help you wire money overseas quickly...",
-          permalink: "/r/personalfinance/comments/abc007/",
-          flagged: true,
-        },
-        createdAt: new Date(now - 4 * day),
-      },
-      {
-        action: "approve",
-        targetId: "demo_t3_abc008",
-        targetType: "post",
-        author: "GamingEnthusiast",
-        subreddit: "gaming",
-        details: {
-          score: 5,
-          reasons: ["No suspicious signals detected"],
-          title: "Anyone else been playing Elden Ring DLC?",
-          body: "Just started the DLC and it's incredible. The bosses are super tough though!",
-          permalink: "/r/gaming/comments/abc008/",
-          flagged: false,
-        },
-        createdAt: new Date(now - 5 * day),
-      },
-      {
-        action: "approve",
-        targetId: "demo_t3_abc009",
-        targetType: "comment",
-        author: "TechAdvice_Real",
-        subreddit: "techsupport",
-        details: {
-          score: 0,
-          reasons: ["No suspicious signals detected"],
-          title: "Re: How do I speed up my old laptop?",
-          body: "Try clearing your temp files and disabling startup programs. Makes a big difference.",
-          permalink: "/r/techsupport/comments/abc009/",
-          flagged: false,
-        },
-        createdAt: new Date(now - 5.5 * day),
-      },
-      {
-        action: "remove",
-        targetId: "demo_t3_abc010",
-        targetType: "post",
-        author: "TelegramSignals5543",
-        subreddit: "CryptoGeneral",
-        details: {
-          score: 80,
-          reasons: ['Scam keyword: "telegram"', 'Scam keyword: "double your"', 'Scam keyword: "investment opportunity"', "Author name ends with many digits (bot pattern)"],
-          title: "Join our Telegram signal group — doubled my portfolio in 2 weeks",
-          body: "Investment opportunity — join Telegram for signals that doubled my portfolio...",
-          permalink: "/r/CryptoGeneral/comments/abc010/",
-          flagged: true,
-        },
-        createdAt: new Date(now - 6 * day),
-      },
-    ];
-
-    await db.insert(modActionsTable).values(
-      demoRows.map((row) => ({
-        tenantId: tenant.id,
-        action: row.action,
-        targetId: row.targetId,
-        targetType: row.targetType,
-        author: row.author,
-        subreddit: row.subreddit,
-        details: row.details,
-        createdAt: row.createdAt,
-      }))
-    );
-
-    logger.info({ tenantId: tenant.id, count: demoRows.length }, "Demo data seeded");
-    res.json({ success: true, count: demoRows.length, message: `Inserted ${demoRows.length} demo scan results` });
-  } catch (err) {
-    logger.error({ err }, "Failed to seed demo data");
-    res.status(500).json({ error: "Failed to seed demo data" });
   }
 });
 
