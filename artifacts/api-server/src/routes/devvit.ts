@@ -126,31 +126,6 @@ async function tryFastapiScore(req: ScanRequest): Promise<ScoringResult | null> 
 }
 
 router.post("/devvit/scan", async (req, res): Promise<void> => {
-  const apiKey = req.headers["x-api-key"] as string | undefined;
-
-  if (!apiKey) {
-    const localResult = computeLocalScore(req.body as ScanRequest);
-    let dbMode = "log";
-    try {
-      const configs = await db
-        .select({ actionMode: tenantConfigsTable.actionMode })
-        .from(tenantConfigsTable)
-        .limit(1);
-      if (configs.length > 0) {
-        dbMode = configs[0].actionMode;
-      }
-    } catch {
-      // default to monitor/log
-    }
-    const isMonitor = dbMode !== "active";
-    if (isMonitor) {
-      localResult.action = "log";
-    }
-    localResult.action_mode = isMonitor ? "monitor" : "active";
-    res.json(localResult);
-    return;
-  }
-
   const scanReq = req.body as ScanRequest;
 
   if (!scanReq.reddit_id || !scanReq.subreddit || !scanReq.author) {
