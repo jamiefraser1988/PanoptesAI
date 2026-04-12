@@ -240,14 +240,60 @@ router.get("/decisions", async (req, res): Promise<void> => {
     res.json(response);
   } catch (err) {
     if (isConnectionRefused(err)) {
-      req.log.info("FastAPI backend unavailable — returning empty decisions");
-      const response = ListDecisionsResponse.parse({
-        items: [],
-        total: 0,
-        page: params.data.page ?? 1,
-        total_pages: 1,
-      });
-      res.json(response);
+      req.log.info("FastAPI backend unavailable — reading decisions from local DB");
+      try {
+        const { subreddit, min_score, content_type, page, limit } = params.data;
+        const per_page = limit ?? 20;
+        const current_page = page ?? 1;
+        const offset = (current_page - 1) * per_page;
+
+        const conditions = [];
+        if (subreddit) conditions.push(eq(modActionsTable.subreddit, subreddit));
+        if (content_type && content_type !== "all") {
+          conditions.push(eq(modActionsTable.targetType, content_type === "posts" ? "post" : "comment"));
+        }
+
+        const rows = await db
+          .select()
+          .from(modActionsTable)
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(desc(modActionsTable.createdAt))
+          .limit(per_page + 1)
+          .offset(offset);
+
+        const hasMore = rows.length > per_page;
+        const pageRows = rows.slice(0, per_page);
+
+        const items = pageRows
+          .map((row) => {
+            const d = (row.details ?? {}) as Record<string, unknown>;
+            const score = typeof d.score === "number" ? d.score : 0;
+            if (min_score && score < min_score) return null;
+            return {
+              id: row.id,
+              post_id: row.targetId,
+              subreddit: row.subreddit ?? "",
+              author: row.author ?? "",
+              title: typeof d.title === "string" ? d.title : "",
+              score,
+              reasons: Array.isArray(d.reasons) ? (d.reasons as string[]) : [],
+              flagged: score >= 40,
+              decided_at: Math.floor(row.createdAt.getTime() / 1000),
+              feedback: null,
+              content_type: (row.targetType === "comment" ? "comment" : "post") as "post" | "comment",
+            };
+          })
+          .filter(Boolean);
+
+        const total = hasMore ? offset + per_page + 1 : offset + items.length;
+        const total_pages = hasMore ? current_page + 1 : Math.max(1, Math.ceil(total / per_page));
+
+        const response = ListDecisionsResponse.parse({ items, total, page: current_page, total_pages });
+        res.json(response);
+      } catch (dbErr) {
+        req.log.error({ dbErr }, "DB fallback for decisions also failed");
+        res.json(ListDecisionsResponse.parse({ items: [], total: 0, page: params.data.page ?? 1, total_pages: 1 }));
+      }
       return;
     }
     req.log.error({ err }, "Failed to fetch decisions from FastAPI");
@@ -420,22 +466,83 @@ router.get("/stats", async (req, res): Promise<void> => {
     res.json(result);
   } catch (err) {
     if (isConnectionRefused(err)) {
-      req.log.info("FastAPI backend unavailable — returning empty stats");
-      const parsed = GetStatsResponse.safeParse({
-        total_posts: 0,
-        flagged_posts: 0,
-        flag_rate_pct: 0,
-        mean_score: 0,
-        false_positive_count: 0,
-        pending_review_count: 0,
-        by_subreddit: [],
-        top_reasons: [],
-        daily_activity: [],
-      });
-      res.json(parsed.success ? parsed.data : {
-        total_posts: 0, flagged_posts: 0, flag_rate_pct: 0, mean_score: 0,
-        false_positive_count: 0, pending_review_count: 0, by_subreddit: [], top_reasons: [], daily_activity: [],
-      });
+      req.log.info("FastAPI backend unavailable — computing stats from local DB");
+      try {
+        const rows = await db.select().from(modActionsTable).orderBy(desc(modActionsTable.createdAt)).limit(1000);
+
+        const total_posts = rows.length;
+        const flaggedRows = rows.filter((r) => {
+          const d = (r.details ?? {}) as Record<string, unknown>;
+          return typeof d.score === "number" && (d.score as number) >= 40;
+        });
+        const flagged_posts = flaggedRows.length;
+        const flag_rate_pct = total_posts > 0 ? Math.round((flagged_posts / total_posts) * 100) : 0;
+
+        const scoreSum = rows.reduce((sum, r) => {
+          const d = (r.details ?? {}) as Record<string, unknown>;
+          return sum + (typeof d.score === "number" ? (d.score as number) : 0);
+        }, 0);
+        const mean_score = total_posts > 0 ? Math.round(scoreSum / total_posts) : 0;
+
+        const subredditMap: Record<string, { total: number; flagged: number }> = {};
+        for (const r of rows) {
+          const sub = r.subreddit ?? "unknown";
+          if (!subredditMap[sub]) subredditMap[sub] = { total: 0, flagged: 0 };
+          subredditMap[sub].total++;
+          const d = (r.details ?? {}) as Record<string, unknown>;
+          if (typeof d.score === "number" && (d.score as number) >= 40) subredditMap[sub].flagged++;
+        }
+        const by_subreddit = Object.entries(subredditMap).map(([subreddit, v]) => ({ subreddit, ...v }));
+
+        const reasonMap: Record<string, number> = {};
+        for (const r of rows) {
+          const d = (r.details ?? {}) as Record<string, unknown>;
+          const reasons = Array.isArray(d.reasons) ? (d.reasons as string[]) : [];
+          for (const reason of reasons) {
+            if (reason !== "No suspicious signals detected") {
+              reasonMap[reason] = (reasonMap[reason] ?? 0) + 1;
+            }
+          }
+        }
+        const top_reasons = Object.entries(reasonMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([reason, count]) => ({ reason, count }));
+
+        const dailyMap: Record<string, Record<string, number>> = {};
+        for (const r of rows) {
+          const date = r.createdAt.toISOString().slice(0, 10);
+          const sub = r.subreddit ?? "unknown";
+          if (!dailyMap[date]) dailyMap[date] = {};
+          dailyMap[date][sub] = (dailyMap[date][sub] ?? 0) + 1;
+        }
+        const daily_activity = Object.entries(dailyMap).flatMap(([date, subs]) =>
+          Object.entries(subs).map(([subreddit, count]) => ({ date, subreddit, count }))
+        );
+
+        const parsed = GetStatsResponse.safeParse({
+          total_posts,
+          flagged_posts,
+          flag_rate_pct,
+          mean_score,
+          false_positive_count: 0,
+          pending_review_count: flagged_posts,
+          by_subreddit,
+          top_reasons,
+          daily_activity,
+        });
+        res.json(parsed.success ? parsed.data : {
+          total_posts, flagged_posts, flag_rate_pct, mean_score,
+          false_positive_count: 0, pending_review_count: flagged_posts,
+          by_subreddit, top_reasons, daily_activity,
+        });
+      } catch (dbErr) {
+        req.log.error({ dbErr }, "DB fallback for stats also failed");
+        res.json({
+          total_posts: 0, flagged_posts: 0, flag_rate_pct: 0, mean_score: 0,
+          false_positive_count: 0, pending_review_count: 0, by_subreddit: [], top_reasons: [], daily_activity: [],
+        });
+      }
       return;
     }
     req.log.error({ err }, "Failed to fetch stats from FastAPI");

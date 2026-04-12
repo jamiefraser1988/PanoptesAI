@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { logger } from "../lib/logger";
-import { db, eq, tenantsTable, tenantConfigsTable } from "@workspace/db";
+import { db, eq, tenantsTable, tenantConfigsTable, modActionsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -189,6 +189,33 @@ router.post("/devvit/scan", async (req, res): Promise<void> => {
       action: result.action,
       action_mode: result.action_mode,
     }, "Devvit scan completed");
+
+    try {
+      const tenants = await db.select({ id: tenantsTable.id }).from(tenantsTable).limit(1);
+      if (tenants.length > 0) {
+        await db.insert(modActionsTable).values({
+          tenantId: tenants[0].id,
+          action: result.action,
+          targetId: scanReq.reddit_id,
+          targetType: scanReq.type,
+          author: scanReq.author,
+          subreddit: scanReq.subreddit,
+          details: {
+            score: result.score,
+            reasons: result.reasons,
+            title: scanReq.title ?? "",
+            body: scanReq.body.slice(0, 500),
+            permalink: scanReq.permalink,
+            action_mode: result.action_mode,
+            ai_summary: result.ai_summary,
+            ai_signals: result.ai_signals,
+            flagged: result.score >= 40,
+          },
+        });
+      }
+    } catch (saveErr) {
+      logger.warn({ saveErr }, "Failed to persist scan result to DB — continuing");
+    }
 
     res.json(result);
   } catch (err) {
