@@ -166,27 +166,29 @@ router.post("/devvit/scan", async (req, res): Promise<void> => {
     }, "Devvit scan completed");
 
     try {
-      const tenants = await db.select({ id: tenantsTable.id }).from(tenantsTable).limit(1);
+      const tenants = await db.select({ id: tenantsTable.id }).from(tenantsTable);
       if (tenants.length > 0) {
-        await db.insert(modActionsTable).values({
-          tenantId: tenants[0].id,
-          action: result.action,
-          targetId: scanReq.reddit_id,
-          targetType: scanReq.type,
-          author: scanReq.author,
-          subreddit: scanReq.subreddit,
-          details: {
-            score: result.score,
-            reasons: result.reasons,
-            title: scanReq.title ?? "",
-            body: scanReq.body.slice(0, 500),
-            permalink: scanReq.permalink,
-            action_mode: result.action_mode,
-            ai_summary: result.ai_summary,
-            ai_signals: result.ai_signals,
-            flagged: result.score >= 40,
-          },
-        });
+        await db.insert(modActionsTable).values(
+          tenants.map((tenant) => ({
+            tenantId: tenant.id,
+            action: result.action,
+            targetId: scanReq.reddit_id,
+            targetType: scanReq.type,
+            author: scanReq.author,
+            subreddit: scanReq.subreddit,
+            details: {
+              score: result.score,
+              reasons: result.reasons,
+              title: scanReq.title ?? "",
+              body: scanReq.body.slice(0, 500),
+              permalink: scanReq.permalink,
+              action_mode: result.action_mode,
+              ai_summary: result.ai_summary,
+              ai_signals: result.ai_signals,
+              flagged: result.score >= 40,
+            },
+          }))
+        ).onConflictDoNothing();
       }
     } catch (saveErr) {
       logger.warn({ saveErr }, "Failed to persist scan result to DB — continuing");
