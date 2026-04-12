@@ -202,7 +202,7 @@ router.post("/devvit/scan", async (req, res): Promise<void> => {
 });
 
 router.get("/devvit/health", (_req, res): void => {
-  res.json({ status: "ok", service: "panoptes-ai" });
+  res.json({ status: "ok", service: "panoptesaimod" });
 });
 
 export default router;
