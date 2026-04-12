@@ -38,3 +38,8 @@ localPort = 8081
 
 [[ports]]
 localPort = 23695
+
+[userenv]
+
+[userenv.shared]
+FASTAPI_URL = "https://panoptes-api-909111042785.us-east5.run.app"

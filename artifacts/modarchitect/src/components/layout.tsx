@@ -52,8 +52,8 @@ const navItems = [
 function NotificationBell() {
   const [open, setOpen] = useState(false);
   const { data: recentHigh } = useListDecisions(
-    { min_score: 70, limit: 5, sort_by: "date", page: 1 },
-    { query: { queryKey: [...getListDecisionsQueryKey({ min_score: 70, limit: 5, sort_by: "date", page: 1 }), "notif"], refetchInterval: 30000 } }
+    { min_score: 70, limit: 5, page: 1 },
+    { query: { queryKey: [...getListDecisionsQueryKey({ min_score: 70, limit: 5, page: 1 }), "notif"], refetchInterval: 30000 } }
   );
 
   const highCount = recentHigh?.items?.length ?? 0;

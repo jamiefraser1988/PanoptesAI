@@ -1,0 +1,44 @@
+panoptesaimod@latest: The term 'panoptesaimod@latest' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+PS C:\Repos\Panaoptes\PanoptesAI\devvit-app> npx devvit uninstall panoptesaimod_dev
+Finding installation of the app "panoptesaimod" in r/panoptesaimod_dev... done
+Uninstalling... done
+PS C:\Repos\Panaoptes\PanoptesAI\devvit-app> npx devvit upload
+Automatically bumped app version to: 0.0.5
+Building... done
+We'll create a default playtest subreddit for your app!
+Uploading... done
+Installing app to default playtest subreddit... done
+We have created a playtest subreddit for you at https://www.reddit.com/r/panoptesaimod_dev
+
+✨ Visit https://developers.reddit.com/apps/panoptesaimod to view your app!
+PS C:\Repos\Panaoptes\PanoptesAI\devvit-app> npx devvit install panoptesaimod_dev 
+Requesting installation details on panoptesaimod... Currently on version 0.0.5
+panoptesaimod may:
+ • Appear in subreddit, post, and comment menu entries, and custom posts.
+ • Observe Reddit events such as post creation, comment deletion, and more.
+ • Can create a custom post.
+ • Read and write _any_ Reddit data.
+ • Read and write _any_ data to and from the internet.
+ • Read and write _app_ data to Reddit servers.
+ • Appear and act as a moderator on subreddits where it's installed.
+Installing panoptesaimod to r/panoptesaimod_dev... Version 0.0.5 has already been installed.
+PS C:\Repos\Panaoptes\PanoptesAI\devvit-app> npx devvit install panoptesaimod_dev panoptesaimod@latest
+Requesting installation details on panoptesaimod... Currently on version 0.0.5
+panoptesaimod may:
+ • Appear in subreddit, post, and comment menu entries, and custom posts.
+ • Observe Reddit events such as post creation, comment deletion, and more.
+ • Can create a custom post.
+ • Read and write _any_ Reddit data.
+ • Read and write _any_ data to and from the internet.
+ • Read and write _app_ data to Reddit servers.
+ • Appear and act as a moderator on subreddits where it's installed.
+Installing panoptesaimod to r/panoptesaimod_dev... Version 0.0.5 has already been installed.
+PS C:\Repos\Panaoptes\PanoptesAI\devvit-app> npx devvit playtest
+Updating... Success!
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ✓ Playtest ready
+➜ URL: https://www.reddit.com/r/panoptesaimod_dev/?playtest=panoptesaimod
+➜ Version: v0.0.5.1
+➜ Open the URL above and refresh to see your latest changes. │
+└────────────────────────────────────────────────────────────────────
