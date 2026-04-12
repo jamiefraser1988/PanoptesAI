@@ -35,7 +35,7 @@ export default function Config() {
   const { data: config, isLoading } = useGetConfig({ query: { queryKey: getGetConfigQueryKey() } });
   const saveConfig = useSaveConfig();
   const testWebhook = useTestWebhook();
-  const { data: recentFlagged, isLoading: flaggedLoading } = useListDecisions({ limit: 3, sort_by: "date", page: 1 });
+  const { data: recentFlagged, isLoading: flaggedLoading } = useListDecisions({ limit: 3, page: 1 });
 
   const [threshold, setThreshold] = useState<number[]>([70]);
   const [subreddits, setSubreddits] = useState<string[]>([]);
@@ -56,7 +56,7 @@ export default function Config() {
       setWebhookUrl(config.webhook_url || "");
       setActionMode(config.action_mode === "active" ? "active" : "monitor");
 
-      const ext = config as Record<string, unknown>;
+      const ext = config as unknown as Record<string, unknown>;
       if (Array.isArray(ext.allowed_users)) setAllowedUsers(ext.allowed_users as string[]);
       if (Array.isArray(ext.blocked_users)) setBlockedUsers(ext.blocked_users as string[]);
       if (Array.isArray(ext.custom_rules)) setCustomRules(ext.custom_rules as CustomRule[]);

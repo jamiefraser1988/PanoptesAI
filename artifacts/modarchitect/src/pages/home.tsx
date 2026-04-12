@@ -13,7 +13,7 @@ function getScoreColor(score: number) {
 }
 
 function RecentHighRiskItems() {
-  const { data, isLoading } = useListDecisions({ limit: 5, sort_by: "score", page: 1 });
+  const { data, isLoading } = useListDecisions({ limit: 5, page: 1 });
 
   return (
     <div className="w-full max-w-4xl mt-10">
