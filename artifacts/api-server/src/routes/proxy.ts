@@ -875,6 +875,33 @@ router.post("/mod-actions", async (_req, res): Promise<void> => {
   res.status(403).json({ error: "Mod actions are recorded automatically by the system. Direct creation is not allowed." });
 });
 
+router.delete("/devvit/seed-demo", async (req, res): Promise<void> => {
+  try {
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const tenant = await getOrCreateTenant(userId);
+
+    const result = await db
+      .delete(modActionsTable)
+      .where(and(
+        eq(modActionsTable.tenantId, tenant.id),
+        sql`${modActionsTable.targetId} LIKE 't3_demo%'`
+      ))
+      .returning({ id: modActionsTable.id });
+
+    logger.info({ tenantId: tenant.id, deleted: result.length }, "Demo data cleared");
+    res.json({ success: true, deleted: result.length });
+  } catch (err) {
+    logger.error({ err }, "Failed to clear demo data");
+    res.status(500).json({ error: "Failed to clear demo data" });
+  }
+});
+
 router.post("/devvit/seed-demo", async (req, res): Promise<void> => {
   try {
     const auth = getAuth(req);

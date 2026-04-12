@@ -63,6 +63,7 @@ export default function Queue() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userProfileLoading, setUserProfileLoading] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -220,6 +221,32 @@ export default function Queue() {
     }
   }, [queryClient, queryParams]);
 
+  const hasDemoItems = displayedItems.some((i) => i.post_id.startsWith("t3_demo"));
+
+  const handleClearDemo = useCallback(async () => {
+    setIsClearing(true);
+    try {
+      const res = await fetch(`${basePath}/api/devvit/seed-demo`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
+      }
+      const body = await res.json() as { deleted?: number };
+      toast.success(`Demo data cleared (${body.deleted ?? 0} rows removed)`);
+      setAccumulatedItems([]);
+      setPage(1);
+      prevPageRef.current = 1;
+      await queryClient.invalidateQueries({ queryKey: getListDecisionsQueryKey(queryParams) });
+    } catch (err) {
+      toast.error(`Failed to clear demo data: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setIsClearing(false);
+    }
+  }, [queryClient, queryParams]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -303,15 +330,30 @@ export default function Queue() {
           <h1 className="text-xl md:text-2xl font-bold text-foreground">Flagged Queue</h1>
           <p className="text-xs md:text-sm text-muted-foreground mt-1">Review flagged content and train the model.</p>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground"
-          onClick={() => setShowShortcuts((p) => !p)}
-        >
-          <Keyboard className="w-4 h-4 mr-1" />
-          <span className="hidden sm:inline">Shortcuts</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasDemoItems && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-muted-foreground border-dashed text-xs"
+              onClick={handleClearDemo}
+              disabled={isClearing}
+              data-testid="btn-clear-demo"
+            >
+              {isClearing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Database className="w-3 h-3 mr-1" />}
+              {isClearing ? "Clearing..." : "Clear Demo"}
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={() => setShowShortcuts((p) => !p)}
+          >
+            <Keyboard className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Shortcuts</span>
+          </Button>
+        </div>
       </div>
 
       {showShortcuts && (
