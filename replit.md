@@ -22,9 +22,9 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ### Devvit Reddit App (devvit-app/)
 - Reddit Developer Platform (Devvit) app — runs on Reddit's servers
 - Triggers on PostSubmit and CommentSubmit events
-- Sends content to PanoptesAI API for scoring via HTTP
-- Takes mod actions (report/remove) based on score and settings
-- Per-subreddit settings: API URL, API key, risk threshold, action mode
+- Sends content to the fixed production PanoptesAI API for scoring via HTTP
+- Takes mod actions (report/remove) based on score and the matched tenant action mode
+- Tenant routing is resolved server-side by matching the subreddit against dashboard `watched_subreddits`
 - Deploy: `cd devvit-app && npm install && devvit login && devvit upload`
 
 ### Python Bot — Legacy (reddit_scam_sentry/)
@@ -37,7 +37,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ### TypeScript API Server (artifacts/api-server/)
 - Express 5 on port 8080
 - Clerk middleware protects all `/api` routes (except `/api/healthz` and `/api/devvit/*`)
-- `/api/devvit/scan` — scoring endpoint for Devvit app (API key auth, no Clerk)
+- `/api/devvit/scan` — scoring endpoint for Devvit app (no Clerk; resolves tenant by `watched_subreddits`)
 - `/api/devvit/health` — health check for Devvit app
 - Proxies to Python FastAPI backend for decisions/stats/feedback
 - Multi-tenant config: per-user tenant with DB-backed config (score threshold, subreddits, webhook)

@@ -5,9 +5,9 @@ A Reddit Developer Platform (Devvit) app that connects your subreddit to Panopte
 ## How It Works
 
 1. Install this app on your subreddit via Reddit
-2. Configure it with your PanoptesAI API URL and key
-3. The app automatically scans every new post and comment
-4. Posts/comments above the risk threshold are reported or removed based on your settings
+2. Add your subreddit to **Watched Subreddits** in the PanoptesAI dashboard
+3. The app automatically sends every new post and comment to the fixed production backend at `https://panoptesai.net`
+4. The API routes the scan to the matching tenant by `watched_subreddits`, stores the decision, and returns the moderation action
 
 ## Setup
 
@@ -30,23 +30,21 @@ devvit upload
 
 After uploading, go to your subreddit > Mod Tools > Community Apps, find "panoptes-ai" and install it.
 
-### Configure
+### Connect Your Subreddit
 
-In the app settings on your subreddit, set:
+In the PanoptesAI dashboard configuration:
 
-- **PanoptesAI API URL**: Your deployed PanoptesAI server URL
-- **PanoptesAI API Key**: API key from your dashboard
-- **Risk Score Threshold**: Score (0-100) above which actions are taken
-- **Action Mode**: Log only, report to mod queue, or auto-remove
+- Add the subreddit name to **Watched Subreddits**
+- Choose **Monitor** or **Active** mode for that tenant
 
-## App Settings
+This Devvit build does not expose per-install API URL or API key settings. Routing is resolved server-side by matching the subreddit against `watched_subreddits`.
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| PanoptesAI API URL | Your PanoptesAI backend URL | (required) |
-| PanoptesAI API Key | Authentication key | (optional) |
-| Risk Threshold | Minimum score to trigger action | 70 |
-| Action Mode | log / report / remove | log |
+## Routing Behavior
+
+- The Devvit app always sends scans to the production API at `https://panoptesai.net`
+- `/api/devvit/scan` resolves the destination tenant by matching the scanned subreddit against dashboard `watched_subreddits`
+- If no tenant matches, the API returns `404`
+- If more than one tenant matches the same subreddit, the API returns `409`
 
 ## Architecture
 
@@ -56,6 +54,8 @@ Reddit Post/Comment
 PanoptesAI Devvit App
     ↓ (HTTP POST)
 PanoptesAI API Server
+    ↓ (tenant resolved by watched_subreddits)
+Matched tenant config
     ↓ (scoring pipeline)
 Rule-based + AI scoring
     ↓

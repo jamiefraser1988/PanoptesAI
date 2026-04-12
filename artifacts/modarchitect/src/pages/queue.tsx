@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { resolveApiUrl } from "@/lib/runtime";
 import { toast } from "sonner";
 import { CheckCircle, XCircle, ExternalLink, Search, Filter, ArrowDownUp, Bot, Sparkles, User, Keyboard, ShieldAlert, Database, Loader2 } from "lucide-react";
 import { SiReddit } from "react-icons/si";
@@ -42,8 +43,6 @@ interface UserProfile {
   recent_items: DecisionItem[];
   risk_level: "high" | "medium" | "low";
 }
-
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function Queue() {
   const [subreddit, setSubreddit] = useState("");
@@ -163,7 +162,7 @@ export default function Queue() {
     setUserProfileLoading(true);
     setUserPanelOpen(true);
     try {
-      const res = await fetch(`${basePath}/api/user-profile/${encodeURIComponent(author)}`, { credentials: "include" });
+      const res = await fetch(resolveApiUrl(`/api/user-profile/${encodeURIComponent(author)}`), { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setUserProfile(data as UserProfile);
@@ -199,7 +198,7 @@ export default function Queue() {
   const handleSeedDemo = useCallback(async () => {
     setIsSeeding(true);
     try {
-      const res = await fetch(`${basePath}/api/devvit/seed-demo`, {
+      const res = await fetch(resolveApiUrl("/api/devvit/seed-demo"), {
         method: "POST",
         credentials: "include",
       });
@@ -226,7 +225,7 @@ export default function Queue() {
   const handleClearDemo = useCallback(async () => {
     setIsClearing(true);
     try {
-      const res = await fetch(`${basePath}/api/devvit/seed-demo`, {
+      const res = await fetch(resolveApiUrl("/api/devvit/seed-demo"), {
         method: "DELETE",
         credentials: "include",
       });

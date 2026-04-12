@@ -1,0 +1,127 @@
+[debug] [2026-04-12T18:26:57.704Z] ----------------------------------------------------------------------
+[debug] [2026-04-12T18:26:57.710Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:list
+[debug] [2026-04-12T18:26:57.711Z] CLI Version:   15.14.0
+[debug] [2026-04-12T18:26:57.711Z] Platform:      win32
+[debug] [2026-04-12T18:26:57.712Z] Node Version:  v24.14.1
+[debug] [2026-04-12T18:26:57.712Z] Time:          Sun Apr 12 2026 19:26:57 GMT+0100 (British Summer Time)
+[debug] [2026-04-12T18:26:57.712Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-12T18:26:57.730Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-12T18:26:57.732Z] > authorizing via signed-in user (jamie.fraser1988@gmail.com)
+[debug] [2026-04-12T18:26:57.737Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:26:57.737Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:26:57.740Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-04-12T18:26:58.292Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-04-12T18:26:58.292Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] ┌───────────────────────────┬────────────────────────────┬────────────────┬──────────────────────┐
+│ Project Display Name      │ Project ID                 │ Project Number │ Resource Location ID │
+├───────────────────────────┼────────────────────────────┼────────────────┼──────────────────────┤
+│ AntiGravRemote Beta       │ antigrav-remote-beta       │ 249245367521   │ [Not specified]      │
+├───────────────────────────┼────────────────────────────┼────────────────┼──────────────────────┤
+│ AntiGravRemote            │ antigravremote             │ 588668697280   │ [Not specified]      │
+├───────────────────────────┼────────────────────────────┼────────────────┼──────────────────────┤
+│ async-agent-runner-v2-dev │ async-agent-runner-v2-dev  │ 245356146419   │ [Not specified]      │
+├───────────────────────────┼────────────────────────────┼────────────────┼──────────────────────┤
+│ ChatViewerProject         │ gen-lang-client-0690404156 │ 793779108753   │ [Not specified]      │
+├───────────────────────────┼────────────────────────────┼────────────────┼──────────────────────┤
+│ DealTracker               │ gen-lang-client-0970853574 │ 812398831792   │ [Not specified]      │
+├───────────────────────────┼────────────────────────────┼────────────────┼──────────────────────┤
+│ GNECarers                 │ gen-lang-client-0978758123 │ 25403389436    │ [Not specified]      │
+├───────────────────────────┼────────────────────────────┼────────────────┼──────────────────────┤
+│ Nyx Sleep Pause           │ nyx-sleep-pause-app        │ 839954890255   │ [Not specified]      │
+├───────────────────────────┼────────────────────────────┼────────────────┼──────────────────────┤
+│ Vesta Staging             │ vesta-staging-99           │ 345564872961   │ [Not specified]      │
+└───────────────────────────┴────────────────────────────┴────────────────┴──────────────────────┘
+[info] 
+[info] 8 project(s) total.
+[debug] [2026-04-12T18:27:45.316Z] ----------------------------------------------------------------------
+[debug] [2026-04-12T18:27:45.320Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:create panoptesaimod --display-name PanoptesAI Mod --non-interactive
+[debug] [2026-04-12T18:27:45.320Z] CLI Version:   15.14.0
+[debug] [2026-04-12T18:27:45.320Z] Platform:      win32
+[debug] [2026-04-12T18:27:45.320Z] Node Version:  v24.14.1
+[debug] [2026-04-12T18:27:45.320Z] Time:          Sun Apr 12 2026 19:27:45 GMT+0100 (British Summer Time)
+[debug] [2026-04-12T18:27:45.321Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-12T18:27:45.330Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-12T18:27:45.330Z] > authorizing via signed-in user (jamie.fraser1988@gmail.com)
+[debug] [2026-04-12T18:27:45.334Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:27:45.334Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:27:45.335Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects [none]
+[debug] [2026-04-12T18:27:45.335Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects {"projectId":"panoptesaimod","name":"PanoptesAI Mod"}
+[debug] [2026-04-12T18:27:45.998Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects 409
+[debug] [2026-04-12T18:27:45.998Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects {"error":{"code":409,"message":"Requested entity already exists","status":"ALREADY_EXISTS"}}
+[debug] [2026-04-12T18:27:46.062Z] FirebaseError: Request to https://cloudresourcemanager.googleapis.com/v1/projects had HTTP Error: 409, Requested entity already exists
+    at responseToError (C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:53:12)
+    at RetryOperation._fn (C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:333:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[error] 
+[error] Error: Failed to create project because there is already a project with ID panoptesaimod. Please try again with a unique project ID.
+[debug] [2026-04-12T18:28:27.853Z] ----------------------------------------------------------------------
+[debug] [2026-04-12T18:28:27.857Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:addfirebase panoptesaimod --non-interactive
+[debug] [2026-04-12T18:28:27.857Z] CLI Version:   15.14.0
+[debug] [2026-04-12T18:28:27.857Z] Platform:      win32
+[debug] [2026-04-12T18:28:27.858Z] Node Version:  v24.14.1
+[debug] [2026-04-12T18:28:27.858Z] Time:          Sun Apr 12 2026 19:28:27 GMT+0100 (British Summer Time)
+[debug] [2026-04-12T18:28:27.858Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-12T18:28:27.867Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-12T18:28:27.868Z] > authorizing via signed-in user (jamie.fraser1988@gmail.com)
+[debug] [2026-04-12T18:28:27.873Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:28:27.873Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:28:27.875Z] >>> [apiv2][query] POST https://firebase.googleapis.com/v1beta1/projects/panoptesaimod:addFirebase [none]
+[debug] [2026-04-12T18:28:29.288Z] <<< [apiv2][status] POST https://firebase.googleapis.com/v1beta1/projects/panoptesaimod:addFirebase 409
+[debug] [2026-04-12T18:28:29.288Z] <<< [apiv2][body] POST https://firebase.googleapis.com/v1beta1/projects/panoptesaimod:addFirebase {"error":{"code":409,"message":"Requested entity already exists","status":"ALREADY_EXISTS"}}
+[debug] [2026-04-12T18:28:29.289Z] Request to https://firebase.googleapis.com/v1beta1/projects/panoptesaimod:addFirebase had HTTP Error: 409, Requested entity already exists
+[debug] [2026-04-12T18:28:29.358Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/panoptesaimod:addFirebase had HTTP Error: 409, Requested entity already exists
+    at responseToError (C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:53:12)
+    at RetryOperation._fn (C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:333:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[error] 
+[error] Error: Failed to add Firebase to Google Cloud Platform project. See firebase-debug.log for more info.
+[debug] [2026-04-12T18:28:45.561Z] ----------------------------------------------------------------------
+[debug] [2026-04-12T18:28:45.567Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js --project panoptesaimod hosting:sites:list
+[debug] [2026-04-12T18:28:45.567Z] CLI Version:   15.14.0
+[debug] [2026-04-12T18:28:45.568Z] Platform:      win32
+[debug] [2026-04-12T18:28:45.568Z] Node Version:  v24.14.1
+[debug] [2026-04-12T18:28:45.568Z] Time:          Sun Apr 12 2026 19:28:45 GMT+0100 (British Summer Time)
+[debug] [2026-04-12T18:28:45.568Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-12T18:28:45.593Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-12T18:28:45.596Z] > authorizing via signed-in user (jamie.fraser1988@gmail.com)
+[debug] [2026-04-12T18:28:45.596Z] [iam] checking project panoptesaimod for permissions ["firebase.projects.get","firebasehosting.sites.get"]
+[debug] [2026-04-12T18:28:45.599Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:28:45.599Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:28:45.602Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions [none]
+[debug] [2026-04-12T18:28:45.603Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions  x-goog-user-project=panoptesaimod
+[debug] [2026-04-12T18:28:45.603Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.get"]}
+[debug] [2026-04-12T18:28:45.760Z] ----------------------------------------------------------------------
+[debug] [2026-04-12T18:28:45.764Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js --project panoptesaimod apps:list WEB
+[debug] [2026-04-12T18:28:45.764Z] CLI Version:   15.14.0
+[debug] [2026-04-12T18:28:45.764Z] Platform:      win32
+[debug] [2026-04-12T18:28:45.764Z] Node Version:  v24.14.1
+[debug] [2026-04-12T18:28:45.765Z] Time:          Sun Apr 12 2026 19:28:45 GMT+0100 (British Summer Time)
+[debug] [2026-04-12T18:28:45.765Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-12T18:28:45.814Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-12T18:28:45.816Z] > authorizing via signed-in user (jamie.fraser1988@gmail.com)
+[debug] [2026-04-12T18:28:45.821Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:28:45.821Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:28:45.824Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/panoptesaimod/webApps pageSize=100
+[debug] [2026-04-12T18:28:46.215Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/panoptesaimod/webApps 200
+[debug] [2026-04-12T18:28:46.215Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/panoptesaimod/webApps {}
+[info] No apps found.
+[debug] [2026-04-12T18:28:46.272Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions 200
+[debug] [2026-04-12T18:28:46.272Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.get"]}
+[debug] [2026-04-12T18:28:46.273Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:28:46.273Z] Checked if tokens are valid: true, expires at: 1776021214741
+[debug] [2026-04-12T18:28:46.273Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/panoptesaimod/sites pageToken=&pageSize=10
+[debug] [2026-04-12T18:28:47.498Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/panoptesaimod/sites 200
+[debug] [2026-04-12T18:28:47.498Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/panoptesaimod/sites {"sites":[{"name":"projects/panoptesaimod/sites/panoptesaimod","defaultUrl":"https://panoptesaimod.web.app","type":"DEFAULT_SITE"}]}
+[info] 
+[info] Sites for project panoptesaimod
+[info] 
+[info] ┌───────────────┬───────────────────────────────┬─────────────────┐
+│ Site ID       │ Default URL                   │ App ID (if set) │
+├───────────────┼───────────────────────────────┼─────────────────┤
+│ panoptesaimod │ https://panoptesaimod.web.app │ --              │
+└───────────────┴───────────────────────────────┴─────────────────┘

@@ -4,8 +4,9 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
 import NotFound from "@/pages/not-found";
+import { apiBaseUrl, basePath, clerkProxyUrl, clerkPubKey } from "@/lib/runtime";
 
 import Queue from "@/pages/queue";
 import Analytics from "@/pages/analytics";
@@ -36,10 +37,6 @@ class ClerkErrorBoundary extends Component<
     return this.props.children;
   }
 }
-
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -168,6 +165,7 @@ function ClerkProviderWithRoutes() {
 function App() {
   useEffect(() => {
     document.documentElement.classList.add("dark");
+    setBaseUrl(apiBaseUrl || null);
   }, []);
 
   if (!clerkPubKey) {

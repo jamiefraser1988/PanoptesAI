@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { resolveApiUrl } from "@/lib/runtime";
 import { ScrollText, ChevronLeft, ChevronRight, Shield, CheckCircle, XCircle, HelpCircle, AlertTriangle } from "lucide-react";
-
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 interface ModActionItem {
   id: number;
@@ -49,7 +48,7 @@ export default function ModLog() {
     setError(null);
     try {
       const params = new URLSearchParams({ page: String(page), limit: "20", action: actionFilter });
-      const res = await fetch(`${basePath}/api/mod-actions?${params}`, { credentials: "include" });
+      const res = await fetch(resolveApiUrl(`/api/mod-actions?${params}`), { credentials: "include" });
       if (res.ok) {
         setActions(await res.json() as ModActionsResponse);
       } else {

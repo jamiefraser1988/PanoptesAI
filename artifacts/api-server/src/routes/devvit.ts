@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
 import { logger } from "../lib/logger";
-import { db, eq, tenantsTable, tenantConfigsTable, modActionsTable } from "@workspace/db";
+import { db, tenantConfigsTable, modActionsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
 const FASTAPI_URL = process.env.FASTAPI_URL ?? "http://localhost:8001";
+const MAX_ERROR_BODY_LENGTH = 300;
 
 interface ScanRequest {
   type: "post" | "comment";
@@ -26,6 +27,16 @@ interface ScoringResult {
   ai_signals?: string[];
 }
 
+interface TenantRoute {
+  tenantId: number;
+  actionMode: string;
+}
+
+type TenantResolution =
+  | { kind: "ok"; match: TenantRoute; normalizedSubreddit: string }
+  | { kind: "not_found"; normalizedSubreddit: string }
+  | { kind: "ambiguous"; normalizedSubreddit: string; tenantIds: number[] };
+
 const SCAM_KEYWORDS = [
   "dm me", "telegram", "whatsapp", "signal app",
   "wallet recovery", "crypto recovery", "funds recovery",
@@ -44,6 +55,26 @@ const PHISHING_DOMAINS = [
   "discord.gift", "steampowered.com.ru",
   "free-nitro", "claim-reward",
 ];
+
+function trimString(value: string | null | undefined): string {
+  return value?.trim() ?? "";
+}
+
+function cleanSubredditName(value: string | null | undefined): string {
+  return trimString(value).replace(/^r\//i, "");
+}
+
+function normalizeSubredditName(value: string | null | undefined): string {
+  return cleanSubredditName(value).toLowerCase();
+}
+
+function trimLogBody(value: string): string {
+  const compact = value.replace(/\s+/g, " ").trim();
+  if (compact.length <= MAX_ERROR_BODY_LENGTH) {
+    return compact;
+  }
+  return `${compact.slice(0, MAX_ERROR_BODY_LENGTH)}...`;
+}
 
 function computeLocalScore(req: ScanRequest): ScoringResult {
   let score = 0;
@@ -100,9 +131,58 @@ function computeLocalScore(req: ScanRequest): ScoringResult {
   return { score, reasons, action };
 }
 
+async function resolveTenantRoute(subreddit: string): Promise<TenantResolution> {
+  const normalizedSubreddit = normalizeSubredditName(subreddit);
+  if (!normalizedSubreddit) {
+    return { kind: "not_found", normalizedSubreddit };
+  }
+
+  const configs = await db
+    .select({
+      tenantId: tenantConfigsTable.tenantId,
+      actionMode: tenantConfigsTable.actionMode,
+      watchedSubreddits: tenantConfigsTable.watchedSubreddits,
+    })
+    .from(tenantConfigsTable);
+
+  const matchesByTenant = new Map<number, TenantRoute>();
+  for (const config of configs) {
+    const watchedSubreddits = Array.isArray(config.watchedSubreddits) ? config.watchedSubreddits : [];
+    const watchesSubreddit = watchedSubreddits.some(
+      (watchedSubreddit) => normalizeSubredditName(watchedSubreddit) === normalizedSubreddit,
+    );
+
+    if (watchesSubreddit && !matchesByTenant.has(config.tenantId)) {
+      matchesByTenant.set(config.tenantId, {
+        tenantId: config.tenantId,
+        actionMode: config.actionMode,
+      });
+    }
+  }
+
+  const matches = [...matchesByTenant.values()];
+  if (matches.length === 0) {
+    return { kind: "not_found", normalizedSubreddit };
+  }
+
+  if (matches.length > 1) {
+    return {
+      kind: "ambiguous",
+      normalizedSubreddit,
+      tenantIds: matches.map((match) => match.tenantId),
+    };
+  }
+
+  return {
+    kind: "ok",
+    match: matches[0],
+    normalizedSubreddit,
+  };
+}
+
 async function tryFastapiScore(req: ScanRequest): Promise<ScoringResult | null> {
+  const endpoint = req.type === "post" ? "/score-post" : "/score-comment";
   try {
-    const endpoint = req.type === "post" ? "/score-post" : "/score-comment";
     const response = await fetch(`${FASTAPI_URL}${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -119,80 +199,113 @@ async function tryFastapiScore(req: ScanRequest): Promise<ScoringResult | null> 
     if (response.ok) {
       return (await response.json()) as ScoringResult;
     }
-  } catch {
-    // FastAPI not available — fall back to local scoring
+    logger.warn({
+      endpoint,
+      subreddit: req.subreddit,
+      author: req.author,
+      status: response.status,
+      body: trimLogBody(await response.text()),
+    }, "FastAPI scoring returned a non-2xx response; falling back to local scoring");
+  } catch (err) {
+    logger.warn({
+      err,
+      endpoint,
+      subreddit: req.subreddit,
+      author: req.author,
+    }, "FastAPI scoring failed; falling back to local scoring");
   }
   return null;
 }
 
 router.post("/devvit/scan", async (req, res): Promise<void> => {
   const scanReq = req.body as ScanRequest;
+  const cleanSubreddit = cleanSubredditName(scanReq.subreddit);
+  const cleanAuthor = trimString(scanReq.author);
 
-  if (!scanReq.reddit_id || !scanReq.subreddit || !scanReq.author) {
+  if (!scanReq.reddit_id || !cleanSubreddit || !cleanAuthor) {
     res.status(400).json({ error: "Missing required fields: reddit_id, subreddit, author" });
     return;
   }
 
   try {
-    const fastapiResult = await tryFastapiScore(scanReq);
-    const result = fastapiResult ?? computeLocalScore(scanReq);
-
-    let dbMode = "log";
-    try {
-      const configs = await db
-        .select({ actionMode: tenantConfigsTable.actionMode })
-        .from(tenantConfigsTable)
-        .limit(1);
-      if (configs.length > 0) {
-        dbMode = configs[0].actionMode;
-      }
-    } catch {
-      // default to monitor if DB unavailable
+    const routing = await resolveTenantRoute(cleanSubreddit);
+    if (routing.kind === "not_found") {
+      logger.warn({
+        reddit_id: scanReq.reddit_id,
+        type: scanReq.type,
+        subreddit: cleanSubreddit,
+      }, "No tenant matched Devvit scan subreddit");
+      res.status(404).json({ error: `No tenant watches subreddit "${cleanSubreddit}"` });
+      return;
     }
 
-    const isMonitor = dbMode !== "active";
+    if (routing.kind === "ambiguous") {
+      logger.error({
+        reddit_id: scanReq.reddit_id,
+        type: scanReq.type,
+        subreddit: cleanSubreddit,
+        tenantIds: routing.tenantIds,
+      }, "Multiple tenants matched Devvit scan subreddit");
+      res.status(409).json({ error: `Multiple tenants watch subreddit "${cleanSubreddit}"` });
+      return;
+    }
+
+    const cleanScanReq: ScanRequest = {
+      ...scanReq,
+      subreddit: cleanSubreddit,
+      author: cleanAuthor,
+    };
+
+    const fastapiResult = await tryFastapiScore(cleanScanReq);
+    const result = fastapiResult ?? computeLocalScore(cleanScanReq);
+
+    const isMonitor = routing.match.actionMode !== "active";
     if (isMonitor) {
       result.action = "log";
     }
     result.action_mode = isMonitor ? "monitor" : "active";
 
+    try {
+      await db.insert(modActionsTable).values({
+        tenantId: routing.match.tenantId,
+        action: result.action,
+        targetId: cleanScanReq.reddit_id,
+        targetType: cleanScanReq.type,
+        author: cleanScanReq.author,
+        subreddit: cleanScanReq.subreddit,
+        details: {
+          score: result.score,
+          reasons: result.reasons,
+          title: cleanScanReq.title ?? "",
+          body: cleanScanReq.body.slice(0, 500),
+          permalink: cleanScanReq.permalink,
+          action_mode: result.action_mode,
+          ai_summary: result.ai_summary,
+          ai_signals: result.ai_signals,
+          flagged: result.score >= 40,
+        },
+      });
+    } catch (saveErr) {
+      logger.error({
+        saveErr,
+        reddit_id: cleanScanReq.reddit_id,
+        type: cleanScanReq.type,
+        subreddit: cleanScanReq.subreddit,
+        tenantId: routing.match.tenantId,
+      }, "Failed to persist Devvit scan result");
+      res.status(500).json({ error: "Failed to persist scan result" });
+      return;
+    }
+
     logger.info({
-      reddit_id: scanReq.reddit_id,
-      type: scanReq.type,
-      subreddit: scanReq.subreddit,
+      reddit_id: cleanScanReq.reddit_id,
+      type: cleanScanReq.type,
+      subreddit: cleanScanReq.subreddit,
       score: result.score,
       action: result.action,
       action_mode: result.action_mode,
+      tenantId: routing.match.tenantId,
     }, "Devvit scan completed");
-
-    try {
-      const tenants = await db.select({ id: tenantsTable.id }).from(tenantsTable);
-      if (tenants.length > 0) {
-        await db.insert(modActionsTable).values(
-          tenants.map((tenant) => ({
-            tenantId: tenant.id,
-            action: result.action,
-            targetId: scanReq.reddit_id,
-            targetType: scanReq.type,
-            author: scanReq.author,
-            subreddit: scanReq.subreddit,
-            details: {
-              score: result.score,
-              reasons: result.reasons,
-              title: scanReq.title ?? "",
-              body: scanReq.body.slice(0, 500),
-              permalink: scanReq.permalink,
-              action_mode: result.action_mode,
-              ai_summary: result.ai_summary,
-              ai_signals: result.ai_signals,
-              flagged: result.score >= 40,
-            },
-          }))
-        ).onConflictDoNothing();
-      }
-    } catch (saveErr) {
-      logger.warn({ saveErr }, "Failed to persist scan result to DB — continuing");
-    }
 
     res.json(result);
   } catch (err) {
