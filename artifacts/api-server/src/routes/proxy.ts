@@ -889,10 +889,13 @@ router.post("/devvit/seed-demo", async (req, res): Promise<void> => {
     const existing = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(modActionsTable)
-      .where(eq(modActionsTable.tenantId, tenant.id));
+      .where(and(
+        eq(modActionsTable.tenantId, tenant.id),
+        sql`${modActionsTable.targetId} LIKE 't3_demo%'`
+      ));
 
     if ((existing[0]?.count ?? 0) > 0) {
-      res.json({ message: "Demo data already exists", inserted: 0 });
+      res.json({ success: true, count: 0, message: "Demo data already loaded" });
       return;
     }
 

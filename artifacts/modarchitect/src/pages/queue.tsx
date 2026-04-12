@@ -206,8 +206,12 @@ export default function Queue() {
         const body = await res.json().catch(() => ({}));
         throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
       }
-      const body = await res.json() as { count?: number };
-      toast.success(`Demo data loaded — ${body.count ?? 10} scan results added`);
+      const body = await res.json() as { count?: number; message?: string };
+      if ((body.count ?? 0) === 0) {
+        toast.info(body.message ?? "Demo data already loaded");
+      } else {
+        toast.success(`${body.count} demo scan results loaded successfully`);
+      }
       await queryClient.invalidateQueries({ queryKey: getListDecisionsQueryKey(queryParams) });
     } catch (err) {
       toast.error(`Failed to load demo data: ${err instanceof Error ? err.message : "Unknown error"}`);
