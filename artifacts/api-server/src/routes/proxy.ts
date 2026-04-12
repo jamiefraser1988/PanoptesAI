@@ -750,6 +750,213 @@ router.post("/mod-actions", async (_req, res): Promise<void> => {
   res.status(403).json({ error: "Mod actions are recorded automatically by the system. Direct creation is not allowed." });
 });
 
+router.post("/seed-demo", async (req, res): Promise<void> => {
+  try {
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const tenant = await getOrCreateTenant(userId);
+
+    const existing = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(modActionsTable)
+      .where(eq(modActionsTable.tenantId, tenant.id));
+
+    if ((existing[0]?.count ?? 0) > 0) {
+      res.json({ message: "Demo data already exists", inserted: 0 });
+      return;
+    }
+
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+
+    const seedRows = [
+      {
+        tenantId: tenant.id,
+        action: "remove",
+        targetId: "t3_demo001",
+        targetType: "post",
+        author: "CryptoHelper2024",
+        subreddit: "CryptoGeneral",
+        details: {
+          score: 90,
+          flagged: true,
+          title: "🚨 DM me for guaranteed 5x returns — limited spots left",
+          body: "I recovered $47k in lost crypto. DM me on telegram now. Wallet recovery specialist. Act now before spots fill up!",
+          reasons: ['Scam keyword: "dm me"', 'Scam keyword: "telegram"', 'Scam keyword: "wallet recovery"', 'Scam keyword: "guaranteed returns"', 'Urgency language: "act now"'],
+          permalink: "/r/CryptoGeneral/comments/demo001",
+        },
+        createdAt: new Date(now - 1 * day),
+      },
+      {
+        tenantId: tenant.id,
+        action: "remove",
+        targetId: "t3_demo002",
+        targetType: "post",
+        author: "InvestmentGuru9999",
+        subreddit: "personalfinance",
+        details: {
+          score: 82,
+          flagged: true,
+          title: "Free bitcoin giveaway — claim your reward now!",
+          body: "Get free crypto by clicking the link. Verify your account and double your bitcoin. Send me 0.1 BTC to receive 0.2 BTC back. Investment opportunity of a lifetime.",
+          reasons: ['Scam keyword: "free bitcoin"', 'Scam keyword: "double your"', 'Scam keyword: "verify your account"', 'Scam keyword: "investment opportunity"', 'Suspicious domain: claim-reward'],
+          permalink: "/r/personalfinance/comments/demo002",
+        },
+        createdAt: new Date(now - 1.5 * day),
+      },
+      {
+        tenantId: tenant.id,
+        action: "remove",
+        targetId: "t3_demo003",
+        targetType: "comment",
+        author: "TechSupportHelper",
+        subreddit: "techsupport",
+        details: {
+          score: 75,
+          flagged: true,
+          title: "Re: My computer is slow — need help",
+          body: "Contact our helpdesk immediately. Call our tech support line and verify your account. We can fix this issue via remote access. Send me your login details via WhatsApp.",
+          reasons: ['Scam keyword: "helpdesk"', 'Scam keyword: "tech support"', 'Scam keyword: "verify your account"', 'Scam keyword: "whatsapp"'],
+          permalink: "/r/techsupport/comments/demo003/reply/demo003r",
+        },
+        createdAt: new Date(now - 2 * day),
+      },
+      {
+        tenantId: tenant.id,
+        action: "review",
+        targetId: "t3_demo004",
+        targetType: "post",
+        author: "WealthBuilder123",
+        subreddit: "investing",
+        details: {
+          score: 60,
+          flagged: true,
+          title: "Passive income strategy that changed my life",
+          body: "I found this amazing passive income system. Investment opportunity with guaranteed profit. Limited time offer — click here to learn more.",
+          reasons: ['Scam keyword: "passive income"', 'Scam keyword: "guaranteed profit"', 'Scam keyword: "investment opportunity"', 'Scam keyword: "click here"'],
+          permalink: "/r/investing/comments/demo004",
+        },
+        createdAt: new Date(now - 2.5 * day),
+      },
+      {
+        tenantId: tenant.id,
+        action: "review",
+        targetId: "t3_demo005",
+        targetType: "post",
+        author: "moneymaker4567",
+        subreddit: "CryptoGeneral",
+        details: {
+          score: 55,
+          flagged: true,
+          title: "Funds recovery service — got my money back after being scammed",
+          body: "I was scammed but found a funds recovery specialist. They helped me get $12k back. DM me if you need their contact info.",
+          reasons: ['Scam keyword: "funds recovery"', 'Scam keyword: "dm me"'],
+          permalink: "/r/CryptoGeneral/comments/demo005",
+        },
+        createdAt: new Date(now - 3 * day),
+      },
+      {
+        tenantId: tenant.id,
+        action: "review",
+        targetId: "t3_demo006",
+        targetType: "comment",
+        author: "QuickRichScheme",
+        subreddit: "personalfinance",
+        details: {
+          score: 45,
+          flagged: true,
+          title: "Re: Best investment strategies for 2024",
+          body: "Urgent — free money opportunity expires tonight! Wire transfer details in my bio. Don't miss out on this last chance.",
+          reasons: ['Scam keyword: "free money"', 'Scam keyword: "wire transfer"', 'Urgency language: "last chance"'],
+          permalink: "/r/personalfinance/comments/demo006/reply/demo006r",
+        },
+        createdAt: new Date(now - 3.5 * day),
+      },
+      {
+        tenantId: tenant.id,
+        action: "approve",
+        targetId: "t3_demo007",
+        targetType: "post",
+        author: "NormalUser_Gaming",
+        subreddit: "gaming",
+        details: {
+          score: 12,
+          flagged: false,
+          title: "Just hit level 100 in my favorite RPG — took me 3 months",
+          body: "Finally made it! The grind was worth it. Love this game community. Anyone else grinding end-game content?",
+          reasons: ["No suspicious signals detected"],
+          permalink: "/r/gaming/comments/demo007",
+        },
+        createdAt: new Date(now - 4 * day),
+      },
+      {
+        tenantId: tenant.id,
+        action: "approve",
+        targetId: "t3_demo008",
+        targetType: "post",
+        author: "everyday_reddit",
+        subreddit: "AskReddit",
+        details: {
+          score: 5,
+          flagged: false,
+          title: "What's the most useful skill you've learned in the last year?",
+          body: "I've been learning to code and it's opened so many doors. What about you?",
+          reasons: ["No suspicious signals detected"],
+          permalink: "/r/AskReddit/comments/demo008",
+        },
+        createdAt: new Date(now - 5 * day),
+      },
+      {
+        tenantId: tenant.id,
+        action: "review",
+        targetId: "t3_demo009",
+        targetType: "post",
+        author: "CryptoNewbie2024",
+        subreddit: "CryptoGeneral",
+        details: {
+          score: 42,
+          flagged: true,
+          title: "Signal app group for crypto trading — join us",
+          body: "We share daily trade signals in a private signal app group. Join our community. Not financial advice.",
+          reasons: ['Scam keyword: "signal app"'],
+          permalink: "/r/CryptoGeneral/comments/demo009",
+        },
+        createdAt: new Date(now - 5.5 * day),
+      },
+      {
+        tenantId: tenant.id,
+        action: "approve",
+        targetId: "t3_demo010",
+        targetType: "post",
+        author: "TechEnthusiast",
+        subreddit: "techsupport",
+        details: {
+          score: 0,
+          flagged: false,
+          title: "How do I increase my RAM speed without overclocking?",
+          body: "I have 16GB DDR4 3200MHz. Is there a way to get better performance without overclocking? Thanks",
+          reasons: ["No suspicious signals detected"],
+          permalink: "/r/techsupport/comments/demo010",
+        },
+        createdAt: new Date(now - 6 * day),
+      },
+    ];
+
+    await db.insert(modActionsTable).values(seedRows as typeof modActionsTable.$inferInsert[]);
+
+    logger.info({ tenantId: tenant.id, count: seedRows.length }, "Seeded demo data");
+    res.json({ message: "Demo data loaded successfully", inserted: seedRows.length });
+  } catch (err) {
+    logger.error({ err }, "Failed to seed demo data");
+    res.status(500).json({ error: "Failed to seed demo data" });
+  }
+});
+
 router.get("/user-profile/:author", async (req, res): Promise<void> => {
   try {
     const author = req.params.author;
@@ -794,6 +1001,204 @@ router.get("/user-profile/:author", async (req, res): Promise<void> => {
   } catch (err) {
     logger.error({ err }, "Failed to fetch user profile");
     res.status(500).json({ error: "Failed to fetch user profile" });
+  }
+});
+
+router.post("/seed-demo", async (req, res): Promise<void> => {
+  try {
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const tenant = await getOrCreateTenant(userId);
+
+    const now = Date.now();
+    const day = 86400000;
+
+    const demoRows = [
+      {
+        action: "remove",
+        targetId: "demo_t3_abc001",
+        targetType: "post",
+        author: "CryptoHelper9274",
+        subreddit: "CryptoGeneral",
+        details: {
+          score: 85,
+          reasons: ['Scam keyword: "dm me"', 'Scam keyword: "guaranteed profit"', 'Scam keyword: "wallet recovery"'],
+          title: "I recovered $40k in lost ETH — DM me for my recovery agent contact",
+          body: "DM me for wallet recovery, guaranteed returns, trusted agent...",
+          permalink: "/r/CryptoGeneral/comments/abc001/",
+          flagged: true,
+        },
+        createdAt: new Date(now - 1 * day),
+      },
+      {
+        action: "remove",
+        targetId: "demo_t3_abc002",
+        targetType: "post",
+        author: "HelpDesk_Official8821",
+        subreddit: "techsupport",
+        details: {
+          score: 90,
+          reasons: ['Scam keyword: "tech support"', 'Scam keyword: "verify your account"', 'Scam keyword: "urgent"', "Author name ends with many digits (bot pattern)"],
+          title: "URGENT: Your Microsoft account will be suspended — verify now",
+          body: "Click here to verify your account or access will be revoked...",
+          permalink: "/r/techsupport/comments/abc002/",
+          flagged: true,
+        },
+        createdAt: new Date(now - 1.5 * day),
+      },
+      {
+        action: "remove",
+        targetId: "demo_t3_abc003",
+        targetType: "comment",
+        author: "ProfitTrader2025",
+        subreddit: "investing",
+        details: {
+          score: 75,
+          reasons: ['Scam keyword: "guaranteed returns"', 'Scam keyword: "passive income"', 'Scam keyword: "investment opportunity"'],
+          title: "Re: Anyone use automated trading bots?",
+          body: "I made $5k last week with passive income strategy. Guaranteed returns. DM for details.",
+          permalink: "/r/investing/comments/abc003/",
+          flagged: true,
+        },
+        createdAt: new Date(now - 2 * day),
+      },
+      {
+        action: "review",
+        targetId: "demo_t3_abc004",
+        targetType: "post",
+        author: "GiftCardHelper",
+        subreddit: "giftcards",
+        details: {
+          score: 55,
+          reasons: ['Scam keyword: "act now"', 'Scam keyword: "limited time"'],
+          title: "Limited time offer — trade your unused gift cards here",
+          body: "Act now while supplies last! Limited time exchange rates...",
+          permalink: "/r/giftcards/comments/abc004/",
+          flagged: true,
+        },
+        createdAt: new Date(now - 2.5 * day),
+      },
+      {
+        action: "review",
+        targetId: "demo_t3_abc005",
+        targetType: "post",
+        author: "BitcoinFanatic",
+        subreddit: "Bitcoin",
+        details: {
+          score: 45,
+          reasons: ['Scam keyword: "free bitcoin"', "Excessive links in content"],
+          title: "Check out this faucet site — I've been using it for months",
+          body: "Free Bitcoin faucet — check these links: http://bit.ly/abc http://bit.ly/def http://bit.ly/ghi http://tinyurl.com/xyz",
+          permalink: "/r/Bitcoin/comments/abc005/",
+          flagged: true,
+        },
+        createdAt: new Date(now - 3 * day),
+      },
+      {
+        action: "review",
+        targetId: "demo_t3_abc006",
+        targetType: "comment",
+        author: "OnlyFansPromo99",
+        subreddit: "AskReddit",
+        details: {
+          score: 60,
+          reasons: ['Scam keyword: "onlyfans"', 'Scam keyword: "🔥 link in bio"'],
+          title: "Re: What's everyone doing this weekend?",
+          body: "Check my profile! 🔥 link in bio — exclusive content on OnlyFans",
+          permalink: "/r/AskReddit/comments/abc006/",
+          flagged: true,
+        },
+        createdAt: new Date(now - 3.5 * day),
+      },
+      {
+        action: "review",
+        targetId: "demo_t3_abc007",
+        targetType: "post",
+        author: "WesternUnionAgent",
+        subreddit: "personalfinance",
+        details: {
+          score: 65,
+          reasons: ['Scam keyword: "wire transfer"', 'Scam keyword: "western union"', 'Scam keyword: "send me"'],
+          title: "Need help with international wire transfer — anyone used Western Union?",
+          body: "Send me your details and I can help you wire money overseas quickly...",
+          permalink: "/r/personalfinance/comments/abc007/",
+          flagged: true,
+        },
+        createdAt: new Date(now - 4 * day),
+      },
+      {
+        action: "approve",
+        targetId: "demo_t3_abc008",
+        targetType: "post",
+        author: "GamingEnthusiast",
+        subreddit: "gaming",
+        details: {
+          score: 5,
+          reasons: ["No suspicious signals detected"],
+          title: "Anyone else been playing Elden Ring DLC?",
+          body: "Just started the DLC and it's incredible. The bosses are super tough though!",
+          permalink: "/r/gaming/comments/abc008/",
+          flagged: false,
+        },
+        createdAt: new Date(now - 5 * day),
+      },
+      {
+        action: "approve",
+        targetId: "demo_t3_abc009",
+        targetType: "comment",
+        author: "TechAdvice_Real",
+        subreddit: "techsupport",
+        details: {
+          score: 0,
+          reasons: ["No suspicious signals detected"],
+          title: "Re: How do I speed up my old laptop?",
+          body: "Try clearing your temp files and disabling startup programs. Makes a big difference.",
+          permalink: "/r/techsupport/comments/abc009/",
+          flagged: false,
+        },
+        createdAt: new Date(now - 5.5 * day),
+      },
+      {
+        action: "remove",
+        targetId: "demo_t3_abc010",
+        targetType: "post",
+        author: "TelegramSignals5543",
+        subreddit: "CryptoGeneral",
+        details: {
+          score: 80,
+          reasons: ['Scam keyword: "telegram"', 'Scam keyword: "double your"', 'Scam keyword: "investment opportunity"', "Author name ends with many digits (bot pattern)"],
+          title: "Join our Telegram signal group — doubled my portfolio in 2 weeks",
+          body: "Investment opportunity — join Telegram for signals that doubled my portfolio...",
+          permalink: "/r/CryptoGeneral/comments/abc010/",
+          flagged: true,
+        },
+        createdAt: new Date(now - 6 * day),
+      },
+    ];
+
+    await db.insert(modActionsTable).values(
+      demoRows.map((row) => ({
+        tenantId: tenant.id,
+        action: row.action,
+        targetId: row.targetId,
+        targetType: row.targetType,
+        author: row.author,
+        subreddit: row.subreddit,
+        details: row.details,
+        createdAt: row.createdAt,
+      }))
+    );
+
+    logger.info({ tenantId: tenant.id, count: demoRows.length }, "Demo data seeded");
+    res.json({ success: true, count: demoRows.length, message: `Inserted ${demoRows.length} demo scan results` });
+  } catch (err) {
+    logger.error({ err }, "Failed to seed demo data");
+    res.status(500).json({ error: "Failed to seed demo data" });
   }
 });
 
