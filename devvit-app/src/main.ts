@@ -4,12 +4,12 @@ import "./game.js";
 Devvit.configure({
   redditAPI: true,
   http: {
-    domains: ["workspace-jfwizkid.replit.app"],
+    domains: ["PanoptesAI.net"],
   },
   redis: true,
 });
 
-const PANOPTES_API_URL = "https://workspace-jfwizkid.replit.app";
+const PANOPTES_API_URL = "https://PanoptesAI.net";
 const RISK_THRESHOLD = 70;
 
 interface ScanRequest {

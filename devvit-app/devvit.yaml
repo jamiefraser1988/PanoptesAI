@@ -1,7 +1,9 @@
-name: panoptes-ai
+--- # something
+name: panoptesaimod
 version: 0.0.4
 permissions:
   http:
     enable: true
     domains:
+      - panoptesai.net
       - workspace-jfwizkid.replit.app
