@@ -7,16 +7,9 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 const port = Number(process.env.PORT ?? "23695");
 const basePath = process.env.BASE_PATH ?? "/";
 
-const plugins = [react(), tailwindcss(), runtimeErrorOverlay()];
-
-if (process.env.REPL_ID) {
-  const { cartographer } = await import("@replit/vite-plugin-cartographer");
-  plugins.push(cartographer());
-}
-
 export default defineConfig({
   base: basePath,
-  plugins,
+  plugins: [react(), tailwindcss(), runtimeErrorOverlay()],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
@@ -31,13 +24,12 @@ export default defineConfig({
   },
   server: {
     port,
-    host: true,
+    host: "0.0.0.0",
     allowedHosts: true,
-    strictPort: true,
   },
   preview: {
     port,
-    host: true,
+    host: "0.0.0.0",
     allowedHosts: true,
   },
 });

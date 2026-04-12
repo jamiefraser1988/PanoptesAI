@@ -27,4 +27,5 @@ from = "/*"
 to = "/index.html"
 
 [services.env]
+PORT = "23695"
 BASE_PATH = "/"
