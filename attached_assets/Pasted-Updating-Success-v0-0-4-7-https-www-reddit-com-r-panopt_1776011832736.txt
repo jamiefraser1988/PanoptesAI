@@ -1,0 +1,34 @@
+Updating... Success!
+✓ v0.0.4.7 ➜ https://www.reddit.com/r/panoptesaimod_dev/?playtest=panoptesaimod
+To revert back to the latest non-playtest version of the app, run: 
+devvit install panoptesaimod_dev panoptesaimod@latest
+PS C:\Repos\Panaoptes\PanoptesAI\devvit-app> npx devvit playtest
+Updating... Success!
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ✓ Playtest ready
+➜ URL: https://www.reddit.com/r/panoptesaimod_dev/?playtest=panoptesaimod
+➜ Version: v0.0.4.8
+➜ Open the URL above and refresh to see your latest changes. │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Failed to reach PanoptesAI API: Error: 2 UNKNOWN: grpc invocation failed with status 2; grpc invocation failed with status 7; HTTP request to domain: panoptesai.net is not allowed
+    at callErrorFromStatus (/srv/index.cjs:4437:21)
+    at Object.onReceiveStatus (/srv/index.cjs:5118:70)
+    at Object.onReceiveStatus (/srv/index.cjs:4920:140)
+    at Object.onReceiveStatus (/srv/index.cjs:4886:175)
+    at /srv/index.cjs:16589:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:84:11)
+for call at
+    at Client3.makeUnaryRequest (/srv/index.cjs:5088:32)
+    at /srv/index.cjs:135774:61
+    at /srv/index.cjs:135834:5
+    at new Promise (<anonymous>)
+    at GrpcWrapper._GrpcWrapper_promiseWithGrpcCallback2 (/srv/index.cjs:135832:10)
+    at GrpcWrapper.request (/srv/index.cjs:135773:109)
+    at GenericPluginClient.Fetch (/srv/index.cjs:136140:93)
+    at fetch2 (/srv/index.cjs:38771:44)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async sendToApi (main.js:19034:22) {
+  code: 2,
+  details: 'grpc invocation failed with status 2; grpc invocation failed with status 7; HTTP request to domain: panoptesai.net is not allowed',
+  metadata: _Metadata { internalRepr: Map(0) {}, options: {} }
+}
