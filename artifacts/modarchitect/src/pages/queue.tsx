@@ -198,7 +198,7 @@ export default function Queue() {
   const handleSeedDemo = useCallback(async () => {
     setIsSeeding(true);
     try {
-      const res = await fetch(`${basePath}/api/seed-demo`, {
+      const res = await fetch(`${basePath}/api/devvit/seed-demo`, {
         method: "POST",
         credentials: "include",
       });

@@ -233,45 +233,53 @@ router.get("/decisions", async (req, res): Promise<void> => {
     if (pageItems.length === 0 && !hasMore) {
       req.log.info("FastAPI returned no decisions — checking local DB for seeded data");
       try {
-        const dbConditions = [];
-        if (subreddit) dbConditions.push(eq(modActionsTable.subreddit, subreddit));
-        if (content_type && content_type !== "all") {
-          dbConditions.push(eq(modActionsTable.targetType, content_type === "posts" ? "post" : "comment"));
-        }
-        const dbRows = await db
-          .select()
-          .from(modActionsTable)
-          .where(dbConditions.length > 0 ? and(...dbConditions) : undefined)
-          .orderBy(desc(modActionsTable.createdAt))
-          .limit(per_page + 1)
-          .offset(offset);
-        const dbHasMore = dbRows.length > per_page;
-        const dbPageRows = dbRows.slice(0, per_page);
-        const dbItems = dbPageRows
-          .map((row) => {
-            const d = (row.details ?? {}) as Record<string, unknown>;
-            const score = typeof d.score === "number" ? d.score : 0;
-            if (min_score && score < min_score) return null;
-            return {
-              id: row.id,
-              post_id: row.targetId,
-              subreddit: row.subreddit ?? "",
-              author: row.author ?? "",
-              title: typeof d.title === "string" ? d.title : "",
-              score,
-              reasons: Array.isArray(d.reasons) ? (d.reasons as string[]) : [],
-              flagged: score >= 40,
-              decided_at: Math.floor(row.createdAt.getTime() / 1000),
-              feedback: null,
-              content_type: (row.targetType === "comment" ? "comment" : "post") as "post" | "comment",
-            };
-          })
-          .filter(Boolean);
-        if (dbItems.length > 0) {
-          const dbTotal = dbHasMore ? offset + per_page + 1 : offset + dbItems.length;
-          const dbTotalPages = dbHasMore ? current_page + 1 : Math.max(1, Math.ceil(dbTotal / per_page));
-          res.json(ListDecisionsResponse.parse({ items: dbItems, total: dbTotal, page: current_page, total_pages: dbTotalPages }));
-          return;
+        const emptyAuth = getAuth(req);
+        const emptyUserId = emptyAuth?.sessionClaims?.userId || emptyAuth?.userId;
+        if (emptyUserId) {
+          const emptyTenant = await getOrCreateTenant(emptyUserId);
+          const dbConditions = [
+            eq(modActionsTable.tenantId, emptyTenant.id),
+            sql`(${modActionsTable.details}->>'score')::int >= 40`,
+          ];
+          if (subreddit) dbConditions.push(eq(modActionsTable.subreddit, subreddit));
+          if (content_type && content_type !== "all") {
+            dbConditions.push(eq(modActionsTable.targetType, content_type === "posts" ? "post" : "comment"));
+          }
+          const dbRows = await db
+            .select()
+            .from(modActionsTable)
+            .where(and(...dbConditions))
+            .orderBy(desc(modActionsTable.createdAt))
+            .limit(per_page + 1)
+            .offset(offset);
+          const dbHasMore = dbRows.length > per_page;
+          const dbPageRows = dbRows.slice(0, per_page);
+          const dbItems = dbPageRows
+            .map((row) => {
+              const d = (row.details ?? {}) as Record<string, unknown>;
+              const score = typeof d.score === "number" ? d.score : 0;
+              if (min_score && score < min_score) return null;
+              return {
+                id: row.id,
+                post_id: row.targetId,
+                subreddit: row.subreddit ?? "",
+                author: row.author ?? "",
+                title: typeof d.title === "string" ? d.title : "",
+                score,
+                reasons: Array.isArray(d.reasons) ? (d.reasons as string[]) : [],
+                flagged: true,
+                decided_at: Math.floor(row.createdAt.getTime() / 1000),
+                feedback: null,
+                content_type: (row.targetType === "comment" ? "comment" : "post") as "post" | "comment",
+              };
+            })
+            .filter(Boolean);
+          if (dbItems.length > 0) {
+            const dbTotal = dbHasMore ? offset + per_page + 1 : offset + dbItems.length;
+            const dbTotalPages = dbHasMore ? current_page + 1 : Math.max(1, Math.ceil(dbTotal / per_page));
+            res.json(ListDecisionsResponse.parse({ items: dbItems, total: dbTotal, page: current_page, total_pages: dbTotalPages }));
+            return;
+          }
         }
       } catch (dbErr) {
         req.log.warn({ dbErr }, "DB empty-fallback for decisions failed");
@@ -514,7 +522,14 @@ router.get("/stats", async (req, res): Promise<void> => {
     if (totalPosts === 0) {
       req.log.info("FastAPI returned zero-data stats — checking local DB for seeded data");
       try {
-        const rows = await db.select().from(modActionsTable).orderBy(desc(modActionsTable.createdAt)).limit(1000);
+        const statsAuth = getAuth(req);
+        const statsUserId = statsAuth?.sessionClaims?.userId || statsAuth?.userId;
+        const statsRows = statsUserId
+          ? await db.select().from(modActionsTable)
+              .where(eq(modActionsTable.tenantId, (await getOrCreateTenant(statsUserId)).id))
+              .orderBy(desc(modActionsTable.createdAt)).limit(1000)
+          : [];
+        const rows = statsRows;
         if (rows.length > 0) {
           const db_total = rows.length;
           const dbFlagged = rows.filter((r) => {
@@ -860,7 +875,7 @@ router.post("/mod-actions", async (_req, res): Promise<void> => {
   res.status(403).json({ error: "Mod actions are recorded automatically by the system. Direct creation is not allowed." });
 });
 
-router.post("/seed-demo", async (req, res): Promise<void> => {
+router.post("/devvit/seed-demo", async (req, res): Promise<void> => {
   try {
     const auth = getAuth(req);
     const userId = auth?.sessionClaims?.userId || auth?.userId;
