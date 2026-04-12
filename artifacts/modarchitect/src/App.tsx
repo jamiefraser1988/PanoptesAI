@@ -11,6 +11,8 @@ import Analytics from "@/pages/analytics";
 import Config from "@/pages/config";
 import ModLog from "@/pages/mod-log";
 import Home from "@/pages/home";
+import Terms from "@/pages/terms";
+import Privacy from "@/pages/privacy";
 import Layout from "@/components/layout";
 
 const queryClient = new QueryClient();
@@ -128,6 +130,8 @@ function ClerkProviderWithRoutes() {
         <TooltipProvider>
           <Switch>
             <Route path="/" component={HomeRedirect} />
+            <Route path="/terms" component={Terms} />
+            <Route path="/privacy" component={Privacy} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
             <Route path="/dashboard" component={AuthenticatedDashboard} />
@@ -153,15 +157,21 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <WouterRouter base={basePath}>
-            <Layout>
-              <Switch>
-                <Route path="/" component={Queue} />
-                <Route path="/analytics" component={Analytics} />
-                <Route path="/mod-log" component={ModLog} />
-                <Route path="/config" component={Config} />
-                <Route component={NotFound} />
-              </Switch>
-            </Layout>
+            <Switch>
+              <Route path="/terms" component={Terms} />
+              <Route path="/privacy" component={Privacy} />
+              <Route>
+                <Layout>
+                  <Switch>
+                    <Route path="/" component={Queue} />
+                    <Route path="/analytics" component={Analytics} />
+                    <Route path="/mod-log" component={ModLog} />
+                    <Route path="/config" component={Config} />
+                    <Route component={NotFound} />
+                  </Switch>
+                </Layout>
+              </Route>
+            </Switch>
           </WouterRouter>
           <Toaster />
         </TooltipProvider>
@@ -174,9 +184,8 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={basePath}>
           <Switch>
-            <Route path="/">
-              <Home />
-            </Route>
+            <Route path="/terms" component={Terms} />
+            <Route path="/privacy" component={Privacy} />
             <Route>
               <Home />
             </Route>

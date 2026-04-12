@@ -194,6 +194,16 @@ export default function Home({ isSignedIn = false }: { isSignedIn?: boolean }) {
           </div>
         </div>
       </main>
+
+      <footer className="border-t border-border px-4 md:px-6 py-4 text-center text-xs text-muted-foreground">
+        <div className="flex items-center justify-center gap-4">
+          <Link href="/terms" className="hover:text-primary transition-colors">Terms and Conditions</Link>
+          <span>|</span>
+          <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+          <span>|</span>
+          <span>&copy; {new Date().getFullYear()} PanoptesAI. All rights reserved.</span>
+        </div>
+      </footer>
     </div>
   );
 }
