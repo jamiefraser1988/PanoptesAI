@@ -4,13 +4,13 @@ import "./game.js";
 Devvit.configure({
   redditAPI: true,
   http: {
-    domains: ["PanoptesAI.net"],
+    domains: ["panoptesai.net", "9bd8e0fc-6706-4137-930c-0ff54d31a9ce-00-2kblhxl2vdpru.riker.replit.dev"],
   },
   redis: true,
 });
 
-const PANOPTES_API_URL = "https://PanoptesAI.net";
-const RISK_THRESHOLD = 70;
+const PANOPTES_API_URL = "https://panoptesai.net";
+const RISK_THRESHOLD = 40;
 
 interface ScanRequest {
   type: "post" | "comment";
@@ -92,13 +92,7 @@ async function handleResult(
 
   const action = result.action;
   if (action === "report" || action === "review") {
-    if (contentType === "post") {
-      const post = await context.reddit.getPostById(thingId);
-      await post.report({ reason: `PanoptesAI: risk score ${result.score}/100 — ${reasonSummary}` });
-    } else {
-      const comment = await context.reddit.getCommentById(thingId);
-      await comment.report({ reason: `PanoptesAI: risk score ${result.score}/100 — ${reasonSummary}` });
-    }
+    console.log(`[PanoptesAI] Flagged ${contentType} ${thingId} for review — score ${result.score}/100 — ${reasonSummary}`);
   } else if (action === "remove") {
     if (contentType === "post") {
       const post = await context.reddit.getPostById(thingId);
@@ -114,13 +108,13 @@ Devvit.addTrigger({
   event: "PostSubmit",
   onEvent: async (event, context) => {
     const post = event.post;
-    if (!post || !post.author) return;
+    if (!post || !post.authorId) return;
 
     const payload: ScanRequest = {
       type: "post",
       reddit_id: post.id,
-      subreddit: post.subreddit?.name ?? "",
-      author: post.author,
+      subreddit: post.subredditId ?? "",
+      author: post.authorId,
       title: post.title ?? "",
       body: post.selftext ?? "",
       permalink: post.permalink ?? "",
@@ -143,7 +137,7 @@ Devvit.addTrigger({
     const payload: ScanRequest = {
       type: "comment",
       reddit_id: comment.id,
-      subreddit: comment.subreddit?.name ?? "",
+      subreddit: comment.subredditId ?? "",
       author: comment.author,
       title: undefined,
       body: comment.body ?? "",
