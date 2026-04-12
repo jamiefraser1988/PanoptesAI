@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useListDecisions, useSubmitFeedback, getListDecisionsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, ExternalLink, Search, Filter, ArrowDownUp, Bot, Sparkles, User, Keyboard, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, Search, Filter, ArrowDownUp, Bot, Sparkles, User, Keyboard, ShieldAlert, Database, Loader2 } from "lucide-react";
 import { SiReddit } from "react-icons/si";
 
 type ContentType = "all" | "posts" | "comments";
@@ -62,6 +62,7 @@ export default function Queue() {
   const [userPanelOpen, setUserPanelOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userProfileLoading, setUserProfileLoading] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -193,6 +194,27 @@ export default function Queue() {
       setUserProfileLoading(false);
     }
   }, [displayedItems]);
+
+  const handleSeedDemo = useCallback(async () => {
+    setIsSeeding(true);
+    try {
+      const res = await fetch(`${basePath}/api/seed-demo`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
+      }
+      const body = await res.json() as { count?: number };
+      toast.success(`Demo data loaded — ${body.count ?? 10} scan results added`);
+      await queryClient.invalidateQueries({ queryKey: getListDecisionsQueryKey(queryParams) });
+    } catch (err) {
+      toast.error(`Failed to load demo data: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setIsSeeding(false);
+    }
+  }, [queryClient, queryParams]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -410,9 +432,39 @@ export default function Queue() {
 
       <div ref={listRef} className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto pb-8">
         {isLoading && displayedItems.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">Loading queue...</div>
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+            <Loader2 className="w-7 h-7 animate-spin text-primary/60" />
+            <span className="text-sm">Loading queue...</span>
+          </div>
         ) : displayedItems.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">No flagged content found.</div>
+          <div className="flex flex-col items-center justify-center py-16 gap-5 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <ShieldAlert className="w-8 h-8 text-primary/70" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-semibold text-foreground">No flagged content yet</h3>
+              <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                {subreddit || minScore[0] > 0
+                  ? "No results match your current filters. Try adjusting the subreddit or minimum score."
+                  : "Your queue is empty. Install the Devvit app on your subreddit to start scanning posts, or load demo data to explore the dashboard."}
+              </p>
+            </div>
+            {!subreddit && minScore[0] === 0 && (
+              <Button
+                onClick={handleSeedDemo}
+                disabled={isSeeding}
+                className="gap-2 mt-1"
+                data-testid="btn-load-demo"
+              >
+                {isSeeding ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Database className="w-4 h-4" />
+                )}
+                {isSeeding ? "Loading demo data..." : "Load Demo Data"}
+              </Button>
+            )}
+          </div>
         ) : (
           <>
             <div className="flex items-center gap-3 px-1 mb-1">
