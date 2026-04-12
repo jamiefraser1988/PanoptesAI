@@ -17,6 +17,8 @@ import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import Layout from "@/components/layout";
 
+if (apiBaseUrl) setBaseUrl(apiBaseUrl);
+
 const queryClient = new QueryClient();
 
 class ClerkErrorBoundary extends Component<
