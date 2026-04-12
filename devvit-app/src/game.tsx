@@ -4,6 +4,15 @@ const GRID = 5;
 const CENTER = 2;
 const MAX_LIVES = 3;
 const TICK_MS = 1500;
+const TILE_SIZE = "42px";
+const SCREEN_BG = "#0B1120";
+const PANEL_BG = "#152238";
+const PANEL_BG_MUTED = "#0F172A";
+const EMPTY_CELL_BG = "#111C2E";
+const CORE_BG = "#0C4A6E";
+const ACCENT = "#38BDF8";
+const MUTED_TEXT = "#94A3B8";
+const SUBTLE_TEXT = "#64748B";
 
 type ThreatType = "bot" | "phish" | "spam";
 
@@ -26,6 +35,12 @@ const THREAT_INFO: Record<ThreatType, { emoji: string; points: number; bg: strin
 };
 
 const TYPES: ThreatType[] = ["bot", "phish", "spam"];
+
+function getThreatLabel(type: ThreatType): string {
+  if (type === "bot") return "Bot";
+  if (type === "phish") return "Phish";
+  return "Spam";
+}
 
 function pickEdge(): [number, number] {
   const side = Math.floor(Math.random() * 4);
@@ -219,18 +234,51 @@ Devvit.addCustomPostType({
     }
 
     const hearts = "\u2764\uFE0F".repeat(lives) + "\u{1F5A4}".repeat(MAX_LIVES - lives);
+    const threatsRemaining = threats.length + Math.max(0, maxSpawn - spawned);
+
+    function renderStatCard(label: string, value: string, color: string) {
+      return (
+        <vstack
+          backgroundColor={PANEL_BG}
+          padding="small"
+          cornerRadius="small"
+          alignment="center"
+        >
+          <text size="xsmall" color={SUBTLE_TEXT}>{label}</text>
+          <text size="medium" weight="bold" color={color}>{value}</text>
+        </vstack>
+      );
+    }
+
+    function renderThreatChip(type: ThreatType) {
+      const info = THREAT_INFO[type];
+      return (
+        <vstack
+          key={type}
+          alignment="center"
+          backgroundColor={info.bg}
+          padding="small"
+          cornerRadius="small"
+        >
+          <text size="large">{info.emoji}</text>
+          <text size="xsmall" color="#E2E8F0">
+            {getThreatLabel(type)} {info.points}
+          </text>
+        </vstack>
+      );
+    }
 
     function renderCell(x: number, y: number) {
       if (x === CENTER && y === CENTER) {
         return (
           <zstack
-            width="52px"
-            height="52px"
+            width={TILE_SIZE}
+            height={TILE_SIZE}
             alignment="center middle"
             cornerRadius="small"
-            backgroundColor="#0C4A6E"
+            backgroundColor={CORE_BG}
           >
-            <text size="xlarge">{"\u{1F441}"}</text>
+            <text size="large">{"\u{1F441}"}</text>
           </zstack>
         );
       }
@@ -240,24 +288,24 @@ Devvit.addCustomPostType({
         const info = THREAT_INFO[threat.type];
         return (
           <zstack
-            width="52px"
-            height="52px"
+            width={TILE_SIZE}
+            height={TILE_SIZE}
             alignment="center middle"
             cornerRadius="small"
             backgroundColor={info.bg}
             onPress={() => handleTap(x, y)}
           >
-            <text size="xlarge">{info.emoji}</text>
+            <text size="large">{info.emoji}</text>
           </zstack>
         );
       }
 
       return (
         <zstack
-          width="52px"
-          height="52px"
+          width={TILE_SIZE}
+          height={TILE_SIZE}
           cornerRadius="small"
-          backgroundColor="#152238"
+          backgroundColor={EMPTY_CELL_BG}
         >
           <text size="small">{" "}</text>
         </zstack>
@@ -269,37 +317,33 @@ Devvit.addCustomPostType({
         <vstack
           height="100%"
           width="100%"
-          alignment="center middle"
-          backgroundColor="#0B1120"
-          padding="large"
-          gap="medium"
+          alignment="center"
+          backgroundColor={SCREEN_BG}
+          padding="medium"
+          gap="small"
         >
-          <text size="xxlarge" weight="bold" color="#38BDF8">
+          <text size="xlarge" weight="bold" color={ACCENT}>
             {"\u{1F441}"} EYES OF PANOPTES
           </text>
-          <text size="medium" color="#94A3B8">
-            Defend your subreddit from threats
+          <text size="small" color={MUTED_TEXT}>
+            Tap threats before they reach the eye.
           </text>
-          <spacer size="small" />
-          <hstack gap="medium" alignment="center">
-            <vstack alignment="center" backgroundColor="#7F1D1D" padding="small" cornerRadius="small">
-              <text size="large">{"\u{1F916}"}</text>
-              <text size="xsmall" color="#CBD5E1">Bot 10pts</text>
-            </vstack>
-            <vstack alignment="center" backgroundColor="#581C87" padding="small" cornerRadius="small">
-              <text size="large">{"\u{1F3A3}"}</text>
-              <text size="xsmall" color="#CBD5E1">Phish 15pts</text>
-            </vstack>
-            <vstack alignment="center" backgroundColor="#713F12" padding="small" cornerRadius="small">
-              <text size="large">{"\u{1F4E7}"}</text>
-              <text size="xsmall" color="#CBD5E1">Spam 5pts</text>
-            </vstack>
-          </hstack>
-          <spacer size="small" />
-          <text size="small" color="#64748B">
-            Tap threats before they reach the center!
-          </text>
-          <spacer size="medium" />
+          <vstack
+            width="100%"
+            backgroundColor={PANEL_BG}
+            cornerRadius="medium"
+            padding="medium"
+            gap="small"
+            alignment="center"
+          >
+            <text size="small" weight="bold" color={ACCENT}>Threat guide</text>
+            <hstack gap="small" alignment="center">
+              {TYPES.map((type) => renderThreatChip(type))}
+            </hstack>
+            <text size="xsmall" color={SUBTLE_TEXT}>
+              Clear a wave to bank a bonus. Miss three threats and the eye falls.
+            </text>
+          </vstack>
           <button appearance="primary" onPress={startGame}>Play</button>
           <button appearance="bordered" onPress={showLeaderboard}>Leaderboard</button>
         </vstack>
@@ -311,26 +355,38 @@ Devvit.addCustomPostType({
         <vstack
           height="100%"
           width="100%"
-          backgroundColor="#0B1120"
-          padding="medium"
+          backgroundColor={SCREEN_BG}
+          padding="small"
           alignment="center"
           gap="small"
         >
-          <hstack width="100%" alignment="center" gap="medium">
-            <text size="medium" weight="bold" color="#38BDF8">Score: {score}</text>
-            <text size="medium" color="#FFFFFF">Wave {wave}</text>
-            <text size="medium">{hearts}</text>
+          <text size="medium" weight="bold" color={ACCENT}>Defend the eye</text>
+          <hstack width="100%" alignment="center" gap="small">
+            {renderStatCard("Score", score.toString(), ACCENT)}
+            {renderStatCard("Wave", wave.toString(), "#E2E8F0")}
+            {renderStatCard("Lives", hearts, "#F87171")}
           </hstack>
-          <spacer size="small" />
-          <vstack gap="small" alignment="center">
+          <text size="xsmall" color={SUBTLE_TEXT}>
+            {threatsRemaining} threats left in this wave
+          </text>
+          <vstack
+            gap="small"
+            alignment="center"
+            backgroundColor={PANEL_BG_MUTED}
+            padding="small"
+            cornerRadius="medium"
+          >
             {[0, 1, 2, 3, 4].map((y) => (
-              <hstack gap="small">
-                {[0, 1, 2, 3, 4].map((x) => renderCell(x, y))}
+              <hstack key={`row-${y}`} gap="small">
+                {[0, 1, 2, 3, 4].map((x) => (
+                  <vstack key={`cell-${x}-${y}`}>{renderCell(x, y)}</vstack>
+                ))}
               </hstack>
             ))}
           </vstack>
-          <spacer size="small" />
-          <text size="xsmall" color="#475569">Tap threats to zap them!</text>
+          <text size="xsmall" color={SUBTLE_TEXT}>
+            Tap fast. The center square must stay clear.
+          </text>
         </vstack>
       );
     }
@@ -340,45 +396,51 @@ Devvit.addCustomPostType({
         <vstack
           height="100%"
           width="100%"
-          alignment="center middle"
-          backgroundColor="#0B1120"
-          padding="large"
-          gap="medium"
+          alignment="center"
+          backgroundColor={SCREEN_BG}
+          padding="medium"
+          gap="small"
         >
-          <text size="xxlarge" weight="bold" color="#38BDF8">GAME OVER</text>
-          <text size="xlarge" weight="bold" color="#FFFFFF">Score: {score}</text>
-          <hstack gap="medium" alignment="center">
-            <text size="medium" color="#94A3B8">Wave {wave}</text>
-            {rank > 0 && (
-              <text size="medium" color="#38BDF8">Rank #{rank}</text>
+          <text size="xlarge" weight="bold" color={ACCENT}>GAME OVER</text>
+          <vstack
+            width="100%"
+            backgroundColor={PANEL_BG}
+            cornerRadius="medium"
+            padding="medium"
+            gap="small"
+            alignment="center"
+          >
+            <text size="large" weight="bold" color="#FFFFFF">Score: {score}</text>
+            <hstack gap="medium" alignment="center">
+              <text size="small" color={MUTED_TEXT}>Wave {wave}</text>
+              {rank > 0 && (
+                <text size="small" color={ACCENT}>Rank #{rank}</text>
+              )}
+            </hstack>
+            {best > 0 && (
+              <text size="xsmall" color={ACCENT}>Personal best: {best}</text>
             )}
-          </hstack>
-          {best > 0 && (
-            <text size="small" color="#38BDF8">Personal best: {best}</text>
-          )}
-          <spacer size="small" />
+          </vstack>
           {lb.length > 0 && (
-            <vstack width="100%" backgroundColor="#152238" cornerRadius="medium" padding="medium" gap="small">
-              <text size="small" weight="bold" color="#38BDF8">Top Scores</text>
+            <vstack width="100%" backgroundColor={PANEL_BG_MUTED} cornerRadius="medium" padding="medium" gap="small">
+              <text size="small" weight="bold" color={ACCENT}>Top Scores</text>
               {lb.slice(0, 5).map((entry, i) => (
-                <hstack width="100%" alignment="center">
-                  <text size="small" color="#94A3B8">{i + 1}.</text>
+                <hstack key={`score-${entry.name}-${i}`} width="100%" alignment="center">
+                  <text size="small" color={MUTED_TEXT}>{i + 1}.</text>
                   <spacer size="small" />
                   <text size="small" color="#FFFFFF" grow>{entry.name}</text>
-                  <text size="small" weight="bold" color="#38BDF8">{entry.score}</text>
+                  <text size="small" weight="bold" color={ACCENT}>{entry.score}</text>
                 </hstack>
               ))}
             </vstack>
           )}
-          <spacer size="small" />
           <button appearance="primary" onPress={startGame}>Play Again</button>
           <button appearance="bordered" onPress={goMenu}>Menu</button>
-          <spacer size="small" />
           <button
             appearance="bordered"
             onPress={() => context.ui.navigateTo("https://workspace-jfwizkid.replit.app")}
           >
-            {"\u{1F6E1}"} Protect your real subreddit
+            {"\u{1F6E1}"} Protect your subreddit
           </button>
         </vstack>
       );
@@ -389,39 +451,37 @@ Devvit.addCustomPostType({
         <vstack
           height="100%"
           width="100%"
-          alignment="center middle"
-          backgroundColor="#0B1120"
-          padding="large"
-          gap="medium"
+          alignment="center"
+          backgroundColor={SCREEN_BG}
+          padding="medium"
+          gap="small"
         >
-          <text size="xxlarge" weight="bold" color="#38BDF8">{"\u{1F3C6}"} LEADERBOARD</text>
+          <text size="xlarge" weight="bold" color={ACCENT}>{"\u{1F3C6}"} LEADERBOARD</text>
           {best > 0 && (
-            <text size="small" color="#38BDF8">Your best: {best}</text>
+            <text size="small" color={ACCENT}>Your best: {best}</text>
           )}
-          <spacer size="small" />
           {lb.length === 0 ? (
-            <text size="medium" color="#64748B">No scores yet. Be the first!</text>
+            <text size="small" color={SUBTLE_TEXT}>No scores yet. Be the first defender.</text>
           ) : (
-            <vstack width="100%" backgroundColor="#152238" cornerRadius="medium" padding="medium" gap="small">
+            <vstack width="100%" backgroundColor={PANEL_BG} cornerRadius="medium" padding="medium" gap="small">
               {lb.map((entry, i) => (
-                <hstack width="100%" alignment="center">
-                  <text size="small" weight="bold" color={i < 3 ? "#38BDF8" : "#94A3B8"}>#{i + 1}</text>
+                <hstack key={`leader-${entry.name}-${i}`} width="100%" alignment="center">
+                  <text size="small" weight="bold" color={i < 3 ? ACCENT : MUTED_TEXT}>#{i + 1}</text>
                   <spacer size="small" />
                   <text size="small" color="#FFFFFF" grow>{entry.name}</text>
-                  <text size="small" weight="bold" color="#38BDF8">{entry.score}</text>
+                  <text size="small" weight="bold" color={ACCENT}>{entry.score}</text>
                 </hstack>
               ))}
             </vstack>
           )}
-          <spacer size="medium" />
           <button appearance="primary" onPress={goMenu}>Back</button>
         </vstack>
       );
     }
 
     return (
-      <vstack alignment="center middle" padding="large">
-        <text>Loading...</text>
+      <vstack alignment="center middle" padding="large" backgroundColor={SCREEN_BG}>
+        <text color={MUTED_TEXT}>Loading...</text>
       </vstack>
     );
   },
@@ -436,8 +496,8 @@ Devvit.addMenuItem({
       title: "\u{1F441} Eyes of Panoptes \u2014 Defend Your Subreddit!",
       subredditName: sub.name,
       preview: (
-        <vstack padding="large" alignment="center middle" backgroundColor="#0B1120" height="100%">
-          <text size="xlarge" color="#38BDF8" weight="bold">Loading game...</text>
+        <vstack padding="large" alignment="center middle" backgroundColor={SCREEN_BG} height="100%">
+          <text size="xlarge" color={ACCENT} weight="bold">Loading game...</text>
         </vstack>
       ),
     });
