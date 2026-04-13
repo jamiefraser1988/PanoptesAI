@@ -1,6 +1,12 @@
 import { Router, type IRouter } from "express";
+import { db, tenantConfigsTable } from "@workspace/db";
+import {
+  REVIEW_SCORE_THRESHOLD,
+  cleanSubredditName,
+  normalizeSubredditName,
+  recordScoredContent,
+} from "../lib/canonical-data";
 import { logger } from "../lib/logger";
-import { db, tenantConfigsTable, modActionsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -18,7 +24,7 @@ interface ScanRequest {
   created_utc: number;
 }
 
-interface ScoringResult {
+interface ScanResponse {
   score: number;
   reasons: string[];
   action: string;
@@ -27,9 +33,26 @@ interface ScoringResult {
   ai_signals?: string[];
 }
 
+interface RuleScoringResult {
+  score: number;
+  reasons: string[];
+  action: "approve" | "review" | "remove";
+}
+
+interface ShadowAnalysisResult {
+  mlScore: number | null;
+  confidence: number | null;
+  aiSummary: string | null;
+  aiSignals: string[];
+  categories: string[];
+  modelVersion: string | null;
+  latencyMs: number | null;
+}
+
 interface TenantRoute {
   tenantId: number;
-  actionMode: string;
+  actionMode: "monitor" | "active";
+  configSnapshot: Record<string, unknown>;
 }
 
 type TenantResolution =
@@ -47,7 +70,7 @@ const SCAM_KEYWORDS = [
   "click here", "click the link", "verify your account",
   "free money", "free crypto", "free bitcoin",
   "investment opportunity", "passive income",
-  "onlyfans", "🔥 link in bio",
+  "onlyfans", "link in bio",
 ];
 
 const PHISHING_DOMAINS = [
@@ -60,14 +83,6 @@ function trimString(value: string | null | undefined): string {
   return value?.trim() ?? "";
 }
 
-function cleanSubredditName(value: string | null | undefined): string {
-  return trimString(value).replace(/^r\//i, "");
-}
-
-function normalizeSubredditName(value: string | null | undefined): string {
-  return cleanSubredditName(value).toLowerCase();
-}
-
 function trimLogBody(value: string): string {
   const compact = value.replace(/\s+/g, " ").trim();
   if (compact.length <= MAX_ERROR_BODY_LENGTH) {
@@ -76,7 +91,25 @@ function trimLogBody(value: string): string {
   return `${compact.slice(0, MAX_ERROR_BODY_LENGTH)}...`;
 }
 
-function computeLocalScore(req: ScanRequest): ScoringResult {
+function toDate(value: number | null | undefined): Date {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    const milliseconds = value > 1_000_000_000_000 ? value : value * 1000;
+    return new Date(milliseconds);
+  }
+  return new Date();
+}
+
+function sanitizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
+}
+
+function computeLocalRuleScore(req: ScanRequest): RuleScoringResult {
   let score = 0;
   const reasons: string[] = [];
   const text = `${req.title ?? ""} ${req.body}`.toLowerCase();
@@ -120,9 +153,12 @@ function computeLocalScore(req: ScanRequest): ScoringResult {
 
   score = Math.min(100, score);
 
-  let action = "approve";
-  if (score >= 70) action = "remove";
-  else if (score >= 40) action = "review";
+  let action: RuleScoringResult["action"] = "approve";
+  if (score >= 70) {
+    action = "remove";
+  } else if (score >= REVIEW_SCORE_THRESHOLD) {
+    action = "review";
+  }
 
   if (reasons.length === 0) {
     reasons.push("No suspicious signals detected");
@@ -140,8 +176,12 @@ async function resolveTenantRoute(subreddit: string): Promise<TenantResolution> 
   const configs = await db
     .select({
       tenantId: tenantConfigsTable.tenantId,
+      scoreThreshold: tenantConfigsTable.scoreThreshold,
       actionMode: tenantConfigsTable.actionMode,
       watchedSubreddits: tenantConfigsTable.watchedSubreddits,
+      allowedUsers: tenantConfigsTable.allowedUsers,
+      blockedUsers: tenantConfigsTable.blockedUsers,
+      customRules: tenantConfigsTable.customRules,
     })
     .from(tenantConfigsTable);
 
@@ -152,12 +192,22 @@ async function resolveTenantRoute(subreddit: string): Promise<TenantResolution> 
       (watchedSubreddit) => normalizeSubredditName(watchedSubreddit) === normalizedSubreddit,
     );
 
-    if (watchesSubreddit && !matchesByTenant.has(config.tenantId)) {
-      matchesByTenant.set(config.tenantId, {
-        tenantId: config.tenantId,
-        actionMode: config.actionMode,
-      });
+    if (!watchesSubreddit || matchesByTenant.has(config.tenantId)) {
+      continue;
     }
+
+    matchesByTenant.set(config.tenantId, {
+      tenantId: config.tenantId,
+      actionMode: config.actionMode === "active" ? "active" : "monitor",
+      configSnapshot: {
+        score_threshold: config.scoreThreshold,
+        action_mode: config.actionMode === "active" ? "active" : "monitor",
+        watched_subreddits: watchedSubreddits,
+        allowed_users: Array.isArray(config.allowedUsers) ? config.allowedUsers : [],
+        blocked_users: Array.isArray(config.blockedUsers) ? config.blockedUsers : [],
+        custom_rules: Array.isArray(config.customRules) ? config.customRules : [],
+      },
+    });
   }
 
   const matches = [...matchesByTenant.values()];
@@ -180,8 +230,10 @@ async function resolveTenantRoute(subreddit: string): Promise<TenantResolution> 
   };
 }
 
-async function tryFastapiScore(req: ScanRequest): Promise<ScoringResult | null> {
+async function tryShadowAnalysis(req: ScanRequest): Promise<ShadowAnalysisResult | null> {
   const endpoint = req.type === "post" ? "/score-post" : "/score-comment";
+  const startedAt = Date.now();
+
   try {
     const response = await fetch(`${FASTAPI_URL}${endpoint}`, {
       method: "POST",
@@ -196,25 +248,43 @@ async function tryFastapiScore(req: ScanRequest): Promise<ScoringResult | null> 
       signal: AbortSignal.timeout(10000),
     });
 
-    if (response.ok) {
-      return (await response.json()) as ScoringResult;
+    if (!response.ok) {
+      logger.warn({
+        endpoint,
+        subreddit: req.subreddit,
+        author: req.author,
+        status: response.status,
+        body: trimLogBody(await response.text()),
+      }, "Internal shadow scoring returned a non-2xx response; continuing with rules-only actioning");
+      return null;
     }
-    logger.warn({
-      endpoint,
-      subreddit: req.subreddit,
-      author: req.author,
-      status: response.status,
-      body: trimLogBody(await response.text()),
-    }, "FastAPI scoring returned a non-2xx response; falling back to local scoring");
+
+    const payload = await response.json() as Record<string, unknown>;
+    const mlScore = typeof payload.score === "number" ? payload.score : null;
+    const confidence = typeof payload.confidence === "number" ? payload.confidence : null;
+    const aiSummary = typeof payload.ai_summary === "string" ? payload.ai_summary : null;
+    const modelVersion = typeof payload.model_version === "string"
+      ? payload.model_version
+      : "fastapi-shadow-v1";
+
+    return {
+      mlScore,
+      confidence,
+      aiSummary,
+      aiSignals: sanitizeStringArray(payload.ai_signals),
+      categories: sanitizeStringArray(payload.categories),
+      modelVersion,
+      latencyMs: Date.now() - startedAt,
+    };
   } catch (err) {
     logger.warn({
       err,
       endpoint,
       subreddit: req.subreddit,
       author: req.author,
-    }, "FastAPI scoring failed; falling back to local scoring");
+    }, "Internal shadow scoring failed; continuing with rules-only actioning");
+    return null;
   }
-  return null;
 }
 
 router.post("/devvit/scan", async (req, res): Promise<void> => {
@@ -256,58 +326,74 @@ router.post("/devvit/scan", async (req, res): Promise<void> => {
       author: cleanAuthor,
     };
 
-    const fastapiResult = await tryFastapiScore(cleanScanReq);
-    const result = fastapiResult ?? computeLocalScore(cleanScanReq);
+    const ruleResult = computeLocalRuleScore(cleanScanReq);
+    const shadowAnalysis = await tryShadowAnalysis(cleanScanReq);
+    const actionMode = routing.match.actionMode;
+    const actualAction = actionMode === "monitor" ? "log" : ruleResult.action;
 
-    const isMonitor = routing.match.actionMode !== "active";
-    if (isMonitor) {
-      result.action = "log";
-    }
-    result.action_mode = isMonitor ? "monitor" : "active";
-
-    try {
-      await db.insert(modActionsTable).values({
+    await recordScoredContent({
+      content: {
         tenantId: routing.match.tenantId,
-        action: result.action,
-        targetId: cleanScanReq.reddit_id,
-        targetType: cleanScanReq.type,
+        redditId: cleanScanReq.reddit_id,
+        contentType: cleanScanReq.type,
+        subreddit: cleanScanReq.subreddit,
         author: cleanScanReq.author,
-        subreddit: cleanScanReq.subreddit,
-        details: {
-          score: result.score,
-          reasons: result.reasons,
-          title: cleanScanReq.title ?? "",
-          body: cleanScanReq.body.slice(0, 500),
-          permalink: cleanScanReq.permalink,
-          action_mode: result.action_mode,
-          ai_summary: result.ai_summary,
-          ai_signals: result.ai_signals,
-          flagged: result.score >= 40,
+        title: cleanScanReq.title ?? "",
+        body: cleanScanReq.body ?? "",
+        permalink: cleanScanReq.permalink ?? "",
+        sourceCreatedAt: cleanScanReq.created_utc,
+        rawMetadata: {
+          source: "devvit",
+          created_utc: cleanScanReq.created_utc,
+          tenant_route_subreddit: routing.normalizedSubreddit,
         },
-      });
-    } catch (saveErr) {
-      logger.error({
-        saveErr,
-        reddit_id: cleanScanReq.reddit_id,
-        type: cleanScanReq.type,
-        subreddit: cleanScanReq.subreddit,
-        tenantId: routing.match.tenantId,
-      }, "Failed to persist Devvit scan result");
-      res.status(500).json({ error: "Failed to persist scan result" });
-      return;
-    }
+      },
+      scoring: {
+        ruleScore: ruleResult.score,
+        mlScore: shadowAnalysis?.mlScore ?? null,
+        finalScore: ruleResult.score,
+        confidence: shadowAnalysis?.confidence ?? null,
+        reasons: ruleResult.reasons,
+        aiSummary: shadowAnalysis?.aiSummary ?? null,
+        aiSignals: shadowAnalysis?.aiSignals ?? [],
+        categories: shadowAnalysis?.categories ?? [],
+        recommendedAction: ruleResult.action,
+        scoringMode: shadowAnalysis ? "shadow_ml" : "rules_only",
+        modelVersion: shadowAnalysis?.modelVersion ?? null,
+        configSnapshot: routing.match.configSnapshot,
+        featureSnapshot: {
+          content_length: `${cleanScanReq.title ?? ""} ${cleanScanReq.body ?? ""}`.length,
+          shadow_ml_available: Boolean(shadowAnalysis),
+          shadow_ml_score: shadowAnalysis?.mlScore ?? null,
+        },
+        latencyMs: shadowAnalysis?.latencyMs ?? null,
+      },
+      auditAction: actualAction,
+      actionMode,
+    });
 
     logger.info({
       reddit_id: cleanScanReq.reddit_id,
       type: cleanScanReq.type,
       subreddit: cleanScanReq.subreddit,
-      score: result.score,
-      action: result.action,
-      action_mode: result.action_mode,
+      score: ruleResult.score,
+      recommendedAction: ruleResult.action,
+      actualAction,
+      actionMode,
       tenantId: routing.match.tenantId,
+      shadowMlScore: shadowAnalysis?.mlScore ?? null,
     }, "Devvit scan completed");
 
-    res.json(result);
+    const response: ScanResponse = {
+      score: ruleResult.score,
+      reasons: ruleResult.reasons,
+      action: actualAction,
+      action_mode: actionMode,
+      ai_summary: shadowAnalysis?.aiSummary ?? undefined,
+      ai_signals: shadowAnalysis?.aiSignals.length ? shadowAnalysis.aiSignals : undefined,
+    };
+
+    res.json(response);
   } catch (err) {
     logger.error({ err }, "Devvit scan failed");
     res.status(500).json({ error: "Scan failed" });

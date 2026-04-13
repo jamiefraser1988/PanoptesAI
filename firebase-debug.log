@@ -125,3 +125,39 @@
 ├───────────────┼───────────────────────────────┼─────────────────┤
 │ panoptesaimod │ https://panoptesaimod.web.app │ --              │
 └───────────────┴───────────────────────────────┴─────────────────┘
+[debug] [2026-04-12T21:01:06.383Z] ----------------------------------------------------------------------
+[debug] [2026-04-12T21:01:06.388Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jamie\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js hosting:sites:list --project panoptesaimod
+[debug] [2026-04-12T21:01:06.388Z] CLI Version:   15.14.0
+[debug] [2026-04-12T21:01:06.388Z] Platform:      win32
+[debug] [2026-04-12T21:01:06.389Z] Node Version:  v24.14.1
+[debug] [2026-04-12T21:01:06.389Z] Time:          Sun Apr 12 2026 22:01:06 GMT+0100 (British Summer Time)
+[debug] [2026-04-12T21:01:06.389Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-12T21:01:06.783Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-12T21:01:06.785Z] > authorizing via signed-in user (jamie.fraser1988@gmail.com)
+[debug] [2026-04-12T21:01:06.786Z] [iam] checking project panoptesaimod for permissions ["firebase.projects.get","firebasehosting.sites.get"]
+[debug] [2026-04-12T21:01:06.790Z] Checked if tokens are valid: false, expires at: 1776021214741
+[debug] [2026-04-12T21:01:06.790Z] Checked if tokens are valid: false, expires at: 1776021214741
+[debug] [2026-04-12T21:01:06.791Z] > refreshing access token with scopes: []
+[debug] [2026-04-12T21:01:06.795Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-04-12T21:01:06.795Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-12T21:01:06.943Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-04-12T21:01:06.943Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-12T21:01:06.961Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions [none]
+[debug] [2026-04-12T21:01:06.961Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions  x-goog-user-project=panoptesaimod
+[debug] [2026-04-12T21:01:06.962Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.get"]}
+[debug] [2026-04-12T21:01:07.593Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions 200
+[debug] [2026-04-12T21:01:07.594Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/panoptesaimod:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.get"]}
+[debug] [2026-04-12T21:01:07.595Z] Checked if tokens are valid: true, expires at: 1776031265944
+[debug] [2026-04-12T21:01:07.595Z] Checked if tokens are valid: true, expires at: 1776031265944
+[debug] [2026-04-12T21:01:07.595Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/panoptesaimod/sites pageToken=&pageSize=10
+[debug] [2026-04-12T21:01:08.618Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/panoptesaimod/sites 200
+[debug] [2026-04-12T21:01:08.618Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/panoptesaimod/sites {"sites":[{"name":"projects/panoptesaimod/sites/panoptesaimod","defaultUrl":"https://panoptesaimod.web.app","type":"DEFAULT_SITE"}]}
+[info] 
+[info] Sites for project panoptesaimod
+[info] 
+[info] ┌───────────────┬───────────────────────────────┬─────────────────┐
+│ Site ID       │ Default URL                   │ App ID (if set) │
+├───────────────┼───────────────────────────────┼─────────────────┤
+│ panoptesaimod │ https://panoptesaimod.web.app │ --              │
+└───────────────┴───────────────────────────────┴─────────────────┘

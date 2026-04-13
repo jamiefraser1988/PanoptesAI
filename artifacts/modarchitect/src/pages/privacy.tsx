@@ -41,12 +41,12 @@ export default function Privacy() {
             <h3 className="text-base font-medium text-foreground mt-3 mb-1">Reddit Data</h3>
             <p>When you connect subreddits for monitoring, we process publicly available Reddit content including:</p>
             <ul className="list-disc pl-6 space-y-1 mt-2">
-              <li>Post titles, body text, and metadata</li>
-              <li>Comment text and metadata</li>
+              <li>Post titles, full body text, links, and metadata</li>
+              <li>Comment text, links, and metadata</li>
               <li>Author usernames and public account information</li>
               <li>Subreddit information</li>
             </ul>
-            <p className="mt-2">This data is processed for the purpose of generating risk scores and moderation insights. We access this data through Reddit's official Devvit platform and API.</p>
+            <p className="mt-2">This data is processed for the purpose of generating risk scores, moderation insights, audit history, and moderator feedback labels. We access this data through Reddit's official Devvit platform and API.</p>
 
             <h3 className="text-base font-medium text-foreground mt-3 mb-1">Usage Data</h3>
             <p>We collect information about how you interact with the Service, including moderation actions taken, configuration settings, and feature usage.</p>
@@ -71,14 +71,14 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-2">4. Data Storage and Retention</h2>
-            <p>Your data is stored securely on servers managed by our hosting provider. We retain your account information for as long as your account is active. Reddit content processed for scoring is retained for analytics purposes and can be deleted upon request. Configuration data is retained until you delete it or close your account.</p>
+            <p>Your data is stored securely on servers managed by our hosting providers. The Service stores canonical content records, scoring runs, moderator label events, tenant configuration, and audit logs in PostgreSQL. We retain account information for as long as your account is active. Reddit content processed for scoring may be retained for analytics, evaluation, and moderation history purposes, subject to our internal retention controls, and can be deleted upon request where applicable. Configuration data is retained until you delete it or close your account.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-2">5. Data Sharing</h2>
             <p>We do not sell your personal information. We may share your information with:</p>
             <ul className="list-disc pl-6 space-y-1 mt-2">
-              <li><strong>Service Providers:</strong> Third-party services that help us operate the Service (hosting, authentication, analytics)</li>
+              <li><strong>Service Providers:</strong> Third-party services that help us operate the Service (hosting, authentication, storage, analytics, and optional internal scoring infrastructure)</li>
               <li><strong>Reddit:</strong> Through the Devvit platform for app functionality</li>
               <li><strong>Legal Requirements:</strong> When required by law, court order, or governmental authority</li>
               <li><strong>Safety:</strong> To protect the rights, safety, or property of PanoptesAI, our users, or others</li>

@@ -1,6 +1,6 @@
 # PanoptesAI — Work Tracker
 
-_Last updated: 10 April 2026_
+_Last updated: 12 April 2026_
 
 ---
 
@@ -27,6 +27,7 @@ _Last updated: 10 April 2026_
 | 17 | Security hardening — mod action logging locked to server-only, error handling | DONE | Client POST returns 403, retry UI |
 | 18 | Eyes of Panoptes mini-game — 5x5 grid defense game as Devvit interactive post | DONE | Waves, lives, leaderboard with Redis |
 | 19 | Logo + color rebrand — new shield+eye logo, cyan/blue color scheme site-wide | DONE | CSS theme vars, hero logo, sidebar, headers |
+| 20 | Canonical truth phase 1 — Node-only product routes on PostgreSQL with canonical content/scoring/label tables | DONE | Added `content_items`, `scoring_runs`, `label_events`; queue/stats/feedback/user profile no longer rely on FastAPI |
 
 ---
 
@@ -34,9 +35,8 @@ _Last updated: 10 April 2026_
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 20 | Devvit app approval on Reddit Developer Portal | WAITING | Submitted, pending Reddit review — blocks live monitoring |
-| 21 | Game color scheme update — align Eyes of Panoptes with new cyan/blue brand | DONE | Updated all colors: #FF4500→#38BDF8, backgrounds to cool blue-gray |
-| 22 | Fix API error log spam — graceful fallback when FastAPI not running | DONE | Fixed ECONNREFUSED detection (err.cause), returns empty data instead of 502 |
+| 21 | Devvit app approval on Reddit Developer Portal | WAITING | Submitted, pending Reddit review — blocks live monitoring |
+| 22 | ML shadow scoring integration | IN PROGRESS | Node remains the product backend; optional internal scorer can enrich scoring runs without owning product routes |
 
 ---
 
@@ -44,18 +44,19 @@ _Last updated: 10 April 2026_
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 23 | FastAPI scoring engine hosting — get Python backend running in production | PLANNED | Graceful fallback in place, needs actual FastAPI running |
-| 24 | End-to-end live monitoring test — verify full pipeline once Devvit is approved | PLANNED | Devvit → API → scoring → dashboard |
-| 25 | Discord/Slack webhook notifications — send alerts when high-risk content detected | PLANNED | Webhook URL/type already in config schema |
-| 26 | Publish latest build to production | PLANNED | Deploy to workspace-jfwizkid.replit.app |
-| 27 | GitHub repo sync — push latest changes | PLANNED | Repo: jamiefraser1988/PanoptesAI |
+| 23 | End-to-end live monitoring test — verify full pipeline once Devvit is approved | PLANNED | Devvit → Node API → PostgreSQL → dashboard |
+| 24 | Discord/Slack webhook notifications — send alerts when high-risk content detected | PLANNED | Webhook URL/type already in config schema |
+| 25 | Dataset export and offline evaluation jobs | PLANNED | Pull labeled data from PostgreSQL for repeatable ML evaluation |
+| 26 | ML ranking rollout | PLANNED | Shadow scoring must beat rules-only before it changes queue order |
+| 27 | Publish latest build to production | PLANNED | Deploy to workspace-jfwizkid.replit.app |
+| 28 | GitHub repo sync — push latest changes | PLANNED | Repo: jamiefraser1988/PanoptesAI |
 
 ---
 
 ## Key Blockers
 
 - **Devvit approval**: No live Reddit data until the Devvit app is approved and installed on subreddits
-- **FastAPI not running**: The Python scoring engine at port 8001 is not active — API server returns 502 on decision queries
+- **Schema push still required**: New canonical tables need to be pushed to PostgreSQL before the updated API can serve canonical routes in production
 
 ---
 
@@ -65,6 +66,6 @@ _Last updated: 10 April 2026_
 |-----------|----------|------|--------|
 | React Dashboard | artifacts/modarchitect/ | Vite dev server | Running |
 | Express API Server | artifacts/api-server/ | 8080 | Running |
-| Python FastAPI Scoring | reddit_scam_sentry/ | 8001 | Not running |
+| Internal Shadow Scoring (optional) | FASTAPI_URL target | 8001 or Cloud Run | Optional |
 | Devvit Reddit App | devvit-app/ | — | Pending approval |
 | PostgreSQL Database | lib/db/ | — | Connected |

@@ -2,6 +2,18 @@
 
 A server-side moderator bot that monitors subreddit posts in real time, scores each one for scam/bot risk using rule-based signals, and optionally applies post flair to flag suspicious content.
 
+## Current Product Note
+
+The Python bot and FastAPI dashboard documented below are legacy components from the original prototype. The current PanoptesAI product uses:
+
+- Node/Express as the only public backend
+- PostgreSQL as the canonical store for content, scoring runs, labels, tenant config, analytics, and audit history
+- Devvit ingestion that writes `content_items`, `scoring_runs`, and `mod_actions`
+- Moderator feedback stored as first-class `label_events`
+- Optional internal scoring services behind Node instead of a second public backend
+
+See [replit.md](./replit.md) for the up-to-date workspace architecture.
+
 ## Features
 
 - **Real-time post streaming** from one or more subreddits
