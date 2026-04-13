@@ -187,7 +187,9 @@ async function resolveTenantRoute(subreddit: string): Promise<TenantResolution> 
 
   const matchesByTenant = new Map<number, TenantRoute>();
   for (const config of configs) {
-    const watchedSubreddits = Array.isArray(config.watchedSubreddits) ? config.watchedSubreddits : [];
+    const watchedSubreddits = Array.isArray(config.watchedSubreddits)
+      ? config.watchedSubreddits.filter((watchedSubreddit): watchedSubreddit is string => typeof watchedSubreddit === "string")
+      : [];
     const watchesSubreddit = watchedSubreddits.some(
       (watchedSubreddit) => normalizeSubredditName(watchedSubreddit) === normalizedSubreddit,
     );

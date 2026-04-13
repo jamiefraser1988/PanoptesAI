@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useListDecisions, useSubmitFeedback, getListDecisionsQueryKey } from "@workspace/api-client-react";
+import { useListDecisions, useSubmitFeedback, getListDecisionsQueryKey, customFetch } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { resolveApiUrl } from "@/lib/runtime";
 import { toast } from "sonner";
 import { CheckCircle, XCircle, ExternalLink, Search, Filter, ArrowDownUp, Bot, Sparkles, User, Keyboard, ShieldAlert, Database, Loader2 } from "lucide-react";
 import { SiReddit } from "react-icons/si";
@@ -158,55 +157,41 @@ export default function Queue() {
     [selectedItems, handleFeedback]
   );
 
+  const buildLocalUserProfile = useCallback((author: string): UserProfile => {
+    const localItems = displayedItems.filter((item) => item.author === author);
+    return {
+      author,
+      total_items: localItems.length,
+      flagged_items: localItems.filter((item) => item.score >= 50).length,
+      avg_score: localItems.length > 0
+        ? Math.round(localItems.reduce((sum, item) => sum + item.score, 0) / localItems.length)
+        : 0,
+      subreddits: [...new Set(localItems.map((item) => item.subreddit))],
+      recent_items: localItems.slice(0, 5),
+      risk_level: "medium",
+    };
+  }, [displayedItems]);
+
   const fetchUserProfile = useCallback(async (author: string) => {
     setUserProfileLoading(true);
     setUserPanelOpen(true);
     try {
-      const res = await fetch(resolveApiUrl(`/api/user-profile/${encodeURIComponent(author)}`), { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setUserProfile(data as UserProfile);
-      } else {
-        const localItems = displayedItems.filter((i) => i.author === author);
-        setUserProfile({
-          author,
-          total_items: localItems.length,
-          flagged_items: localItems.filter((i) => i.score >= 50).length,
-          avg_score: localItems.length > 0 ? Math.round(localItems.reduce((s, i) => s + i.score, 0) / localItems.length) : 0,
-          subreddits: [...new Set(localItems.map((i) => i.subreddit))],
-          recent_items: localItems.slice(0, 5),
-          risk_level: "medium",
-        });
-      }
+      const data = await customFetch<UserProfile>(`/api/user-profile/${encodeURIComponent(author)}`);
+      setUserProfile(data);
     } catch (err) {
       toast.error("Could not load full user profile — showing local data only");
-      const localItems = displayedItems.filter((i) => i.author === author);
-      setUserProfile({
-        author,
-        total_items: localItems.length,
-        flagged_items: localItems.filter((i) => i.score >= 50).length,
-        avg_score: localItems.length > 0 ? Math.round(localItems.reduce((s, i) => s + i.score, 0) / localItems.length) : 0,
-        subreddits: [...new Set(localItems.map((i) => i.subreddit))],
-        recent_items: localItems.slice(0, 5),
-        risk_level: "medium",
-      });
+      setUserProfile(buildLocalUserProfile(author));
     } finally {
       setUserProfileLoading(false);
     }
-  }, [displayedItems]);
+  }, [buildLocalUserProfile]);
 
   const handleSeedDemo = useCallback(async () => {
     setIsSeeding(true);
     try {
-      const res = await fetch(resolveApiUrl("/api/devvit/seed-demo"), {
+      const body = await customFetch<{ count?: number; message?: string }>("/api/devvit/seed-demo", {
         method: "POST",
-        credentials: "include",
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
-      }
-      const body = await res.json() as { count?: number; message?: string };
       if ((body.count ?? 0) === 0) {
         toast.info(body.message ?? "Demo data already loaded");
       } else {
@@ -225,15 +210,9 @@ export default function Queue() {
   const handleClearDemo = useCallback(async () => {
     setIsClearing(true);
     try {
-      const res = await fetch(resolveApiUrl("/api/devvit/seed-demo"), {
+      const body = await customFetch<{ deleted?: number }>("/api/devvit/seed-demo", {
         method: "DELETE",
-        credentials: "include",
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
-      }
-      const body = await res.json() as { deleted?: number };
       toast.success(`Demo data cleared (${body.deleted ?? 0} rows removed)`);
       setAccumulatedItems([]);
       setPage(1);

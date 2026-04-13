@@ -1,9 +1,10 @@
 import { getAuth } from "@clerk/express";
 import type { Request } from "express";
-import { db, eq, tenantConfigsTable, tenantsTable } from "@workspace/db";
+import { db, eq, tenantConfigsTable, tenantsTable, type Tenant, type TenantConfig } from "@workspace/db";
+import type { RequestWithUserId } from "../middlewares/requireAuth";
 
 export function getClerkUserId(req: Request): string | null {
-  const requestUserId = (req as Request & { userId?: string }).userId;
+  const requestUserId = (req as RequestWithUserId).userId;
   if (requestUserId) {
     return requestUserId;
   }
@@ -12,7 +13,7 @@ export function getClerkUserId(req: Request): string | null {
   return auth?.sessionClaims?.userId || auth?.userId || null;
 }
 
-export async function getOrCreateTenant(clerkUserId: string) {
+export async function getOrCreateTenant(clerkUserId: string): Promise<Tenant> {
   const existing = await db
     .select()
     .from(tenantsTable)
@@ -39,10 +40,14 @@ export async function getOrCreateTenant(clerkUserId: string) {
     .where(eq(tenantsTable.clerkUserId, clerkUserId))
     .limit(1);
 
-  return fallback;
+  if (fallback) {
+    return fallback;
+  }
+
+  throw new Error(`Failed to resolve tenant for Clerk user ${clerkUserId}`);
 }
 
-export async function getTenantConfig(tenantId: number) {
+export async function getTenantConfig(tenantId: number): Promise<TenantConfig> {
   const existing = await db
     .select()
     .from(tenantConfigsTable)
@@ -69,5 +74,9 @@ export async function getTenantConfig(tenantId: number) {
     .where(eq(tenantConfigsTable.tenantId, tenantId))
     .limit(1);
 
-  return fallback;
+  if (fallback) {
+    return fallback;
+  }
+
+  throw new Error(`Failed to resolve tenant config for tenant ${tenantId}`);
 }

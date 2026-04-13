@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { customFetch } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { resolveApiUrl } from "@/lib/runtime";
 import { ScrollText, ChevronLeft, ChevronRight, Shield, CheckCircle, XCircle, HelpCircle, AlertTriangle } from "lucide-react";
 
 interface ModActionItem {
@@ -48,14 +48,10 @@ export default function ModLog() {
     setError(null);
     try {
       const params = new URLSearchParams({ page: String(page), limit: "20", action: actionFilter });
-      const res = await fetch(resolveApiUrl(`/api/mod-actions?${params}`), { credentials: "include" });
-      if (res.ok) {
-        setActions(await res.json() as ModActionsResponse);
-      } else {
-        setError(`Failed to load actions (${res.status})`);
-      }
+      const data = await customFetch<ModActionsResponse>(`/api/mod-actions?${params.toString()}`);
+      setActions(data);
     } catch (err) {
-      setError("Failed to connect to the server. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to connect to the server. Please try again.");
     } finally {
       setLoading(false);
     }
