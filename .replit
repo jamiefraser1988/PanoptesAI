@@ -4,16 +4,19 @@ modules = ["nodejs-24", "python-3.11", "postgresql-16"]
 id = "artifacts/api-server"
 
 [[artifacts]]
+id = "artifacts/modarchitect"
+
+[[artifacts]]
 id = "artifacts/mockup-sandbox"
 
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
-build = "corepack pnpm install --frozen-lockfile && corepack pnpm run build:dashboard"
+build = "pnpm install --no-frozen-lockfile && pnpm run build:dashboard"
 run = "node ./scripts/serve-dashboard.mjs"
 
 [deployment.postBuild]
-args = ["corepack", "pnpm", "store", "prune"]
+args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
 [workflows]
