@@ -9,6 +9,8 @@ id = "artifacts/mockup-sandbox"
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
+build = "corepack enable && pnpm install --frozen-lockfile && pnpm run build:dashboard"
+run = "node ./scripts/serve-dashboard.mjs"
 
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]

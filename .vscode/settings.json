@@ -1,0 +1,4 @@
+{
+    "chatgpt.composerEnterBehavior": "cmdIfMultiline",
+    "chatgpt.followUpQueueMode": "steer"
+}

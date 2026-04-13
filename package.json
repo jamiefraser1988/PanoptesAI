@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "build:dashboard": "pnpm --filter @workspace/modarchitect run build",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "start:dashboard": "node ./scripts/serve-dashboard.mjs",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
