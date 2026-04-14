@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resetting sign-in state…</title>
+  </head>
+  <body>
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var returnUrl = params.get("return") || "/";
+
+        try {
+          var target = new URL(returnUrl, window.location.origin);
+          window.location.replace(target.toString());
+        } catch {
+          window.location.replace("/");
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -438,7 +438,7 @@ Devvit.addCustomPostType({
           <button appearance="bordered" onPress={goMenu}>Menu</button>
           <button
             appearance="bordered"
-            onPress={() => context.ui.navigateTo("https://workspace-jfwizkid.replit.app")}
+            onPress={() => context.ui.navigateTo("https://panoptesai.net/sign-up")}
           >
             {"\u{1F6E1}"} Protect your subreddit
           </button>

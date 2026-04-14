@@ -8,6 +8,24 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      (function () {
+        var LEGACY_HOST = "panoptesai.net";
+        var CANONICAL_HOST = "www.panoptesai.net";
+        var allowedHosts = [LEGACY_HOST, CANONICAL_HOST];
+
+        if (allowedHosts.indexOf(window.location.hostname) === -1) {
+          return;
+        }
+
+        if (window.location.hostname === LEGACY_HOST) {
+          var canonicalUrl = new URL(window.location.href);
+          canonicalUrl.hostname = CANONICAL_HOST;
+          window.location.replace(canonicalUrl.toString());
+          return;
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

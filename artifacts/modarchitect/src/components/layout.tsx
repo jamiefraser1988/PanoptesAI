@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useUser, useClerk } from "@clerk/react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { clerkPubKey } from "@/lib/runtime";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -40,7 +41,7 @@ function UserSection() {
   );
 }
 
-const clerkEnabled = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkEnabled = !!clerkPubKey;
 
 const navItems = [
   { href: "/dashboard", label: "Flagged Queue", icon: Shield },

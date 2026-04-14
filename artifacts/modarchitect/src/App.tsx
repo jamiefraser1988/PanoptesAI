@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, Component, type ReactNode } from "react";
-import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
 import NotFound from "@/pages/not-found";
-import { apiBaseUrl, basePath, clerkProxyUrl, clerkPubKey } from "@/lib/runtime";
+import { apiBaseUrl, basePath, clerkPubKey } from "@/lib/runtime";
 
 import Queue from "@/pages/queue";
 import Analytics from "@/pages/analytics";
@@ -20,7 +20,6 @@ import Layout from "@/components/layout";
 if (apiBaseUrl) setBaseUrl(apiBaseUrl);
 
 const queryClient = new QueryClient();
-
 class ClerkErrorBoundary extends Component<
   { children: ReactNode; fallback: ReactNode },
   { hasError: boolean }
@@ -47,53 +46,81 @@ function stripBase(path: string): string {
 }
 
 function SignInPage() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (isLoaded && isSignedIn) {
+    return <Redirect to="/dashboard" />;
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <SignIn
+        routing="path"
+        path={`${basePath}/sign-in`}
+        signUpUrl={`${basePath}/sign-up`}
+        forceRedirectUrl={`${basePath}/dashboard`}
+        fallbackRedirectUrl={`${basePath}/dashboard`}
+      />
     </div>
   );
 }
 
 function SignUpPage() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (isLoaded && isSignedIn) {
+    return <Redirect to="/dashboard" />;
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      <SignUp
+        routing="path"
+        path={`${basePath}/sign-up`}
+        signInUrl={`${basePath}/sign-in`}
+        forceRedirectUrl={`${basePath}/dashboard`}
+        fallbackRedirectUrl={`${basePath}/dashboard`}
+      />
     </div>
   );
 }
 
+function AuthLoadingScreen() {
+  return <div className="min-h-screen bg-background" />;
+}
+
 function AuthenticatedDashboard() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (!isSignedIn) {
+    return <Redirect to="/" />;
+  }
+
   return (
-    <>
-      <Show when="signed-in">
-        <Layout>
-          <Switch>
-            <Route path="/dashboard" component={Queue} />
-            <Route path="/analytics" component={Analytics} />
-            <Route path="/mod-log" component={ModLog} />
-            <Route path="/config" component={Config} />
-            <Route component={NotFound} />
-          </Switch>
-        </Layout>
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/" />
-      </Show>
-    </>
+    <Layout>
+      <Switch>
+        <Route path="/dashboard" component={Queue} />
+        <Route path="/analytics" component={Analytics} />
+        <Route path="/mod-log" component={ModLog} />
+        <Route path="/config" component={Config} />
+        <Route component={NotFound} />
+      </Switch>
+    </Layout>
   );
 }
 
 function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Home isSignedIn={true} />
-      </Show>
-      <Show when="signed-out">
-        <Home />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) {
+    return <AuthLoadingScreen />;
+  }
+
+  return <Home isSignedIn={isSignedIn} />;
 }
 
 function ClerkAuthTokenSetter() {
@@ -131,17 +158,21 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+function ClerkAuthRouteClientResetter() {
+  return null;
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
+        <ClerkAuthRouteClientResetter />
         <ClerkAuthTokenSetter />
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>

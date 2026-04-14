@@ -48,7 +48,7 @@ _Last updated: 12 April 2026_
 | 24 | Discord/Slack webhook notifications — send alerts when high-risk content detected | PLANNED | Webhook URL/type already in config schema |
 | 25 | Dataset export and offline evaluation jobs | PLANNED | Pull labeled data from PostgreSQL for repeatable ML evaluation |
 | 26 | ML ranking rollout | PLANNED | Shadow scoring must beat rules-only before it changes queue order |
-| 27 | Publish latest build to production | PLANNED | Deploy to workspace-jfwizkid.replit.app |
+| 27 | Publish latest build to production | IN PROGRESS | Deploy dashboard to Firebase Hosting (`panoptesai.net`) and API to Cloud Run |
 | 28 | GitHub repo sync — push latest changes | PLANNED | Repo: jamiefraser1988/PanoptesAI |
 
 ---

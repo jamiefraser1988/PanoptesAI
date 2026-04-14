@@ -12,7 +12,7 @@ The Python bot and FastAPI dashboard documented below are legacy components from
 - Moderator feedback stored as first-class `label_events`
 - Optional internal scoring services behind Node instead of a second public backend
 
-See [replit.md](./replit.md) for the up-to-date workspace architecture.
+See [architecture.md](./architecture.md) for the up-to-date production architecture and deployment path.
 
 ## Features
 
