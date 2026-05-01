@@ -35,22 +35,17 @@ a long debugging session ended with the stack fully on Google Cloud
 
 ## What's next
 
-0. **Smoke test the migrated stack end-to-end before inviting users.** Items
-   below all assume #0 has passed. Suggested checklist:
-   - [ ] Fresh sign-up via email/password in incognito → lands on /dashboard
-   - [ ] Sign out, sign back in via email/password — session persists
-   - [ ] Sign-up via Google in different incognito with different Google
-         account — OAuth completes, lands on /dashboard
-   - [ ] Queue / Analytics / Mod-log / Config pages all load (empty is OK)
-   - [ ] Config: change score threshold → save → hard-reload → persisted
-   - [ ] Config: add subreddit / allowlist / blocklist entry → save →
-         reload → persisted
-   - [ ] DevTools Network tab on /dashboard reload — every `/api/*` call
-         returns 2xx (no 401/500)
-   - [ ] Dashboard works on mobile cellular (not WiFi) and on Edge
-   - [ ] No auth bounce loop on hard-refresh
-   - [ ] (Once Devvit exception approved) install on a test sub, post, see
-         it in the queue with a score
+0. **Smoke test the migrated stack end-to-end before inviting users.**
+   Self-test as primary user passed 2026-05-02 — config save x2,
+   queue/analytics/mod-log/config all 2xx, no app-level errors in Cloud
+   Run logs across the test window. Outstanding subtasks:
+   - [ ] Fresh sign-up with a second Google account in incognito —
+         confirms tenant isolation / multi-tenant scoping
+   - [ ] Mobile cellular smoke test (not WiFi) — confirms Clerk JS loads
+         outside dev network conditions
+   - [ ] Edge browser smoke test — confirms no Chrome-specific assumptions
+   - [ ] (Post-Devvit-exception) install Devvit app on a test sub, make a
+         post, see it in queue with a score
 
 1. **Resubmit Devvit domain exception** for `api.panoptesai.net` at
    https://developers.reddit.com/apps/panoptesaimod/developer-settings —
@@ -73,6 +68,7 @@ a long debugging session ended with the stack fully on Google Cloud
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-05-02 | Smoke test pass (primary user) | Cloud Run logs clean across full click-through: tenant auto-create, Config GET/POST persisted, queue/analytics/mod-log/stats/healthz all 2xx, ETag caching observed. Multi-tenant + cross-browser still untested. |
 | 2026-05-01 | Use Cloud SQL Postgres (us-central1) over fresh Neon | Single-vendor (GCP), terminal-driven via gcloud, no Replit-style middleman risk. Trade-off: ~$10–15/mo vs Neon free. |
 | 2026-05-01 | Cloud Run service in us-central1, not us-east5 | us-east5 doesn't support direct domain mappings or Firebase Hosting `run` rewrites. |
 | 2026-05-01 | Embedded Clerk `<SignIn>`/`<SignUp>` instead of hosted accounts portal | Hosted portal at accounts.www.panoptesai.net showed "Unable to complete action at this time" banner — instance-wide failure on Clerk's edge after DNS records were briefly missing. Embedded components hit clerk.www directly which works. |
