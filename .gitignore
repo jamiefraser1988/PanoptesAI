@@ -48,3 +48,7 @@ Thumbs.db
 .cache/
 .local/
 .github/workflows/ci.yml
+
+# Per-user agent state (Claude Code, etc.)
+/.claude/scheduled_tasks.lock
+/.claude/settings.local.json

@@ -4,12 +4,12 @@ import "./game.js";
 Devvit.configure({
   redditAPI: true,
   http: {
-    domains: ["panoptesai.net"],
+    domains: ["api.panoptesai.net"],
   },
   redis: true,
 });
 
-const PANOPTES_API_URL = "https://panoptesai.net";
+const PANOPTES_API_URL = "https://api.panoptesai.net";
 const RISK_THRESHOLD = 40;
 const MAX_ERROR_BODY_LENGTH = 300;
 

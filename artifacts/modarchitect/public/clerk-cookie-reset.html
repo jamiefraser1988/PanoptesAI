@@ -10,12 +10,16 @@
       (function () {
         var params = new URLSearchParams(window.location.search);
         var returnUrl = params.get("return") || "/";
+        var origin = window.location.origin;
 
         try {
-          var target = new URL(returnUrl, window.location.origin);
+          var target = new URL(returnUrl, origin);
+          if (target.origin !== origin) {
+            throw new Error("Cross-origin return URL not allowed");
+          }
           window.location.replace(target.toString());
         } catch {
-          window.location.replace("/");
+          window.location.replace(new URL("/", origin).toString());
         }
       })();
     </script>

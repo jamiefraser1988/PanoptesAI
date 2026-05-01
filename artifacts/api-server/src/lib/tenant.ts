@@ -10,7 +10,7 @@ export function getClerkUserId(req: Request): string | null {
   }
 
   const auth = getAuth(req);
-  return auth?.sessionClaims?.userId || auth?.userId || null;
+  return auth.userId;
 }
 
 export async function getOrCreateTenant(clerkUserId: string): Promise<Tenant> {

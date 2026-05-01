@@ -1,0 +1,124 @@
+# PROJECT_STATE.md
+
+_Last updated: 2026-05-01_
+
+## Thesis
+
+PanoptesAI is a Reddit moderation SaaS. A Devvit app on Reddit ingests
+posts/comments, the Node/Express API scores them for scam/bot risk and
+persists to Postgres, and the React dashboard lets mods triage the queue,
+configure rules, and view analytics. As of 2026-05-01, the product is
+mid-migration off Replit and being prepared for first paying users —
+a long debugging session ended with the stack fully on Google Cloud
+(Firebase Hosting + Cloud Run + Cloud SQL + Clerk Production).
+
+## What's done
+
+- Dashboard + API + Devvit feature work (queue, analytics, mod-log, config,
+  rules, bulk actions, allow/blocklists, multi-tenant) — see WORKLOG.md
+- Migrated API from Cloud Run us-east5 → us-central1 (us-east5 didn't
+  support custom-domain mappings)
+- `api.panoptesai.net` mapped to Cloud Run with managed TLS
+- Migrated database from Replit-provisioned Neon (which got disabled when
+  detached from Replit) to Cloud SQL Postgres `panoptes-db` in us-central1
+- Schema pushed via `pnpm push` (lib/db) to fresh Cloud SQL DB
+- Clerk auth fixed end-to-end: bot protection toggled off, hosted-page
+  redirect path replaced with embedded `<SignIn>`/`<SignUp>` components,
+  Google OAuth client secret refreshed and re-enabled
+- DNS records for Clerk (`clerk.www`, `accounts.www`, `clkmail.www`,
+  `clk._domainkey.www`, `clk2._domainkey.www`) and Firebase (`www`)
+  restored at Replit's DNS panel after they got accidentally wiped
+- Devvit app (`panoptesaimod`) updated to call `api.panoptesai.net`,
+  v0.0.7 uploaded **and published** to Reddit
+- Global agent house rules added to `~/.claude/CLAUDE.md`,
+  `~/.codex/AGENTS.md`, `~/.copilot/agents/durable-memory.agent.md`
+
+## What's next
+
+1. **Resubmit Devvit domain exception** for `api.panoptesai.net` at
+   https://developers.reddit.com/apps/panoptesaimod/developer-settings —
+   prior exceptions for `panoptesai.net` and Replit dev URLs were rejected.
+   Without this, the published Devvit app can't reach the API.
+2. **Swap apex A record** at Replit DNS panel: delete `@ A 34.111.179.208`,
+   add `@ A 199.36.158.100`. Firebase already has the apex domain claimed
+   (state `HOST_MISMATCH`), waiting on this single record change. Once done,
+   `panoptesai.net` (no www) serves the dashboard instead of the Replit
+   "Asset Manager" sign-in page that's there now.
+3. **Migrate DNS to Cloudflare** — zone exists at Cloudflare (`pending`),
+   nameservers still at name.com. Switch nameservers to
+   `clint.ns.cloudflare.com` and `monroe.ns.cloudflare.com`. Then DNS is
+   manageable via `cf dns` CLI instead of Replit's panel that wipes records.
+4. **Bootstrap commerce / Stripe** — Clerk's commerce_settings show
+   stripe_publishable_key:null. No paid tier wired up yet despite the
+   "paying users" goal. Either enable Clerk Billing or build Stripe-native.
+
+## Decision Log
+
+| Date | Decision | Why |
+|---|---|---|
+| 2026-05-01 | Use Cloud SQL Postgres (us-central1) over fresh Neon | Single-vendor (GCP), terminal-driven via gcloud, no Replit-style middleman risk. Trade-off: ~$10–15/mo vs Neon free. |
+| 2026-05-01 | Cloud Run service in us-central1, not us-east5 | us-east5 doesn't support direct domain mappings or Firebase Hosting `run` rewrites. |
+| 2026-05-01 | Embedded Clerk `<SignIn>`/`<SignUp>` instead of hosted accounts portal | Hosted portal at accounts.www.panoptesai.net showed "Unable to complete action at this time" banner — instance-wide failure on Clerk's edge after DNS records were briefly missing. Embedded components hit clerk.www directly which works. |
+| 2026-05-01 | Disable Clerk Bot sign-up Protection | Cloudflare Turnstile widget wasn't completing on accounts.www subdomain, blocked all sign-ups. Re-enable with custom Turnstile keys before any meaningful traffic. |
+| 2026-05-01 | New Cloud SQL DB starts empty | The Replit-provisioned Neon DB was disabled outside our control. ~4 historical signups lost; small enough to email and re-onboard. |
+
+## Known traps and lessons
+
+- **Replit's DNS panel REPLACES records on certain "save" flows** instead of
+  appending. We lost 6 records (www, clerk.www, accounts.www, clkmail.www,
+  both DKIMs) when adding new ones. Always screenshot the DNS list before
+  saving anything in that panel.
+- **Cloud Run domain-mapping requires Search Console Domain property
+  verification** (TXT-based), not URL-prefix (HTML-based). HTML
+  verification works for Search Console but won't satisfy `gcloud run
+  domain-mappings create`. Best path on Replit-locked DNS is the
+  registrar-OAuth verification (the "domain provider" flow Search Console
+  offers); name.com OAuth was unreliable, CNAME injection via Replit
+  worked.
+- **Cloud SQL connection from Cloud Run requires `roles/cloudsql.client` on
+  the runtime service account.** Without it, queries fail with
+  `ECONNREFUSED /cloudsql/PROJECT:REGION:INSTANCE/.s.PGSQL.5432` even with
+  `--add-cloudsql-instances` set.
+- **`drizzle-kit push` against Cloud SQL needs
+  `NODE_TLS_REJECT_UNAUTHORIZED=0`** (or proper CA cert configured) — Cloud
+  SQL uses self-signed certs that pg's strict TLS rejects.
+- **pnpm Windows shim sometimes fails with "system cannot find the path
+  specified"** — invoke vite/drizzle directly via
+  `node ./node_modules/<bin>/...` as a workaround.
+- **Chrome's per-process DNS cache holds NXDOMAIN for ~hours** even after
+  `chrome://net-internals/#dns` clear and incognito. Real fix is to kill all
+  Chrome processes (incl. system-tray ones) — or test in Edge.
+- **Clerk's `clerk_js_version` env config and the `@clerk/react` SDK
+  major can mismatch** without breaking; `display_config.clerk_js_version=5`
+  while the dashboard ships v6 from npm is fine.
+
+## Architecture
+
+- Dashboard: React + Vite + wouter + TanStack Query + Clerk React, in
+  `artifacts/modarchitect/`. Built to `dist/public/`. Deployed to **Firebase
+  Hosting** site `panoptesaimod`. Live at `https://www.panoptesai.net`.
+- API: Express + Drizzle ORM + Clerk Express middleware, in
+  `artifacts/api-server/`. Runs on **Cloud Run** service `panoptes-api` in
+  `us-central1`. Live at `https://api.panoptesai.net`. Connects to Cloud SQL
+  via Unix socket `/cloudsql/panoptesaimod:us-central1:panoptes-db` from
+  `--add-cloudsql-instances` flag.
+- Database: **Cloud SQL Postgres 15** instance `panoptes-db` in
+  us-central1, db-f1-micro tier, 10GB SSD, public IP allowlist empty (Cloud
+  Run uses socket only). Schema in `lib/db/src/schema/`.
+- Auth: **Clerk Production** instance `ins_3CK2oesMpc7Unol12LMR9BgN5dz`,
+  primary domain `www.panoptesai.net`. CNAMEs at `clerk.www`, `accounts.www`,
+  `clkmail.www`, `clk._domainkey.www`, `clk2._domainkey.www`. Embedded
+  components used; hosted accounts portal not used in production currently.
+- Devvit app: `panoptesaimod` v0.0.7 (uploaded), code in `devvit-app/`.
+- Domain `panoptesai.net`: registered through Replit (name.com partner),
+  DNS managed via Replit's domain panel. Cloudflare zone exists but
+  pending nameserver switch.
+
+## Out of scope (deliberately)
+
+- Devvit-side payments — Reddit account is "Not eligible". Use Stripe via
+  Clerk Billing or direct integration on the dashboard side.
+- Migrating off Replit's DNS panel tonight — too risky immediately
+  post-recovery; do the Cloudflare nameserver switch when fresh.
+- Reclaiming the old Neon DB data — probably owned by Replit org, support
+  ticket would take days, and lost data is small.
