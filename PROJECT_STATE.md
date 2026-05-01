@@ -35,6 +35,23 @@ a long debugging session ended with the stack fully on Google Cloud
 
 ## What's next
 
+0. **Smoke test the migrated stack end-to-end before inviting users.** Items
+   below all assume #0 has passed. Suggested checklist:
+   - [ ] Fresh sign-up via email/password in incognito → lands on /dashboard
+   - [ ] Sign out, sign back in via email/password — session persists
+   - [ ] Sign-up via Google in different incognito with different Google
+         account — OAuth completes, lands on /dashboard
+   - [ ] Queue / Analytics / Mod-log / Config pages all load (empty is OK)
+   - [ ] Config: change score threshold → save → hard-reload → persisted
+   - [ ] Config: add subreddit / allowlist / blocklist entry → save →
+         reload → persisted
+   - [ ] DevTools Network tab on /dashboard reload — every `/api/*` call
+         returns 2xx (no 401/500)
+   - [ ] Dashboard works on mobile cellular (not WiFi) and on Edge
+   - [ ] No auth bounce loop on hard-refresh
+   - [ ] (Once Devvit exception approved) install on a test sub, post, see
+         it in the queue with a score
+
 1. **Resubmit Devvit domain exception** for `api.panoptesai.net` at
    https://developers.reddit.com/apps/panoptesaimod/developer-settings —
    prior exceptions for `panoptesai.net` and Replit dev URLs were rejected.
