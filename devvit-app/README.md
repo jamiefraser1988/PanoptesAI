@@ -6,7 +6,7 @@ A Reddit Developer Platform (Devvit) app that connects your subreddit to Panopte
 
 1. Install this app on your subreddit via Reddit
 2. Add your subreddit to **Watched Subreddits** in the PanoptesAI dashboard
-3. The app automatically sends every new post and comment to the fixed production backend at `https://panoptesai.net`
+3. The app automatically sends every new post and comment to the fixed production backend at `https://panoptes-api-909111042785.us-central1.run.app`
 4. The API routes the scan to the matching tenant by `watched_subreddits`, stores the decision, and returns the moderation action
 
 ## Setup
@@ -41,10 +41,18 @@ This Devvit build does not expose per-install API URL or API key settings. Routi
 
 ## Routing Behavior
 
-- The Devvit app always sends scans to the production API at `https://panoptesai.net`
+- The Devvit app always sends scans to the production API at `https://panoptes-api-909111042785.us-central1.run.app`
 - `/api/devvit/scan` resolves the destination tenant by matching the scanned subreddit against dashboard `watched_subreddits`
 - If no tenant matches, the API returns `404`
 - If more than one tenant matches the same subreddit, the API returns `409`
+
+## Fetch Domains
+
+The app makes outbound HTTP fetches to a single host:
+
+| Domain | Why it is needed |
+|---|---|
+| `panoptes-api-909111042785.us-central1.run.app` | The PanoptesAI scoring API, hosted on Google Cloud Run. The Devvit app POSTs each new post/comment to `/api/devvit/scan` so the scoring engine can compute a scam/bot risk score and return a moderation action. The API stores scoring history, manages per-tenant configuration, and serves the dashboard at `www.panoptesai.net`. Cloud Run is the only host because the scoring pipeline depends on a managed PostgreSQL database (Cloud SQL) and tenant-aware request routing — neither of which Devvit's runtime supports. Only public Reddit content (post/comment ID, subreddit, author username, title, body, permalink, created_utc) is sent; no private moderator data leaves Reddit. |
 
 ## Architecture
 

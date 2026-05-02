@@ -4,4 +4,4 @@ permissions:
   http:
     enable: true
     domains:
-      - api.panoptesai.net
+      - panoptes-api-909111042785.us-central1.run.app
