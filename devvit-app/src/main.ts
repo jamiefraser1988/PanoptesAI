@@ -4,12 +4,16 @@ import "./game.js";
 Devvit.configure({
   redditAPI: true,
   http: {
-    domains: ["panoptes-api-909111042785.us-central1.run.app"],
+    domains: ["us-central1-panoptesaimod.cloudfunctions.net"],
   },
   redis: true,
 });
 
-const PANOPTES_API_URL = "https://panoptes-api-909111042785.us-central1.run.app";
+// Firebase Cloud Functions endpoint. Reddit's http-fetch policy approves
+// Firebase domains, where it rejects custom backends like Cloud Run direct
+// URLs. The function is a thin proxy that forwards POST /scan into the
+// Cloud Run scoring API. See PROJECT_STATE.md Decision Log 2026-05-02.
+const PANOPTES_API_URL = "https://us-central1-panoptesaimod.cloudfunctions.net";
 const RISK_THRESHOLD = 40;
 const MAX_ERROR_BODY_LENGTH = 300;
 
@@ -74,7 +78,7 @@ async function sendToApi(
   payload: ScanRequest
 ): Promise<ScanResponse | null> {
   try {
-    const url = `${PANOPTES_API_URL}/api/devvit/scan`;
+    const url = `${PANOPTES_API_URL}/devvitScan`;
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

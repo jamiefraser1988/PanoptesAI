@@ -4,4 +4,4 @@ permissions:
   http:
     enable: true
     domains:
-      - panoptes-api-909111042785.us-central1.run.app
+      - us-central1-panoptesaimod.cloudfunctions.net

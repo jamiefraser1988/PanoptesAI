@@ -1,0 +1,22 @@
+{
+  "name": "panoptes-functions",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Firebase Functions front door for the Devvit-facing scoring endpoint. Devvit's http-fetch policy approves *.cloudfunctions.net; this function proxies POST /scan into the private Cloud Run scoring API.",
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "serve": "pnpm run build && firebase emulators:start --only functions",
+    "deploy": "pnpm run build && firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}

@@ -1,4 +1,20 @@
 {
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "node functions/node_modules/typescript/bin/tsc -p functions"
+      ]
+    }
+  ],
   "hosting": {
     "site": "panoptesaimod",
     "public": "artifacts/modarchitect/dist/public",

@@ -47,10 +47,12 @@ a long debugging session ended with the stack fully on Google Cloud
    - [ ] (Post-Devvit-exception) install Devvit app on a test sub, make a
          post, see it in queue with a score
 
-1. **Resubmit Devvit domain exception** for `api.panoptesai.net` at
-   https://developers.reddit.com/apps/panoptesaimod/developer-settings —
-   prior exceptions for `panoptesai.net` and Replit dev URLs were rejected.
-   Without this, the published Devvit app can't reach the API.
+1. **Stand up Firebase Cloud Function as the Devvit-facing scoring endpoint.**
+   The function proxies POST /scan into the existing Cloud Run API
+   (private, IAM-gated). Point Devvit at the resulting
+   `*.cloudfunctions.net` URL. Re-upload Devvit; this domain should pass
+   Reddit's review since Firebase is explicitly on the approved PaaS list.
+   See Decision Log 2026-05-02 for context.
 2. **Swap apex A record** at Replit DNS panel: delete `@ A 34.111.179.208`,
    add `@ A 199.36.158.100`. Firebase already has the apex domain claimed
    (state `HOST_MISMATCH`), waiting on this single record change. Once done,
@@ -68,6 +70,7 @@ a long debugging session ended with the stack fully on Google Cloud
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-05-02 | Pivot Devvit-facing scoring endpoint to Firebase Cloud Functions (Option E) | Reddit rejected both `api.panoptesai.net` (custom domain) and `panoptes-api-…run.app` (Cloud Run subdomain) for the Devvit http-fetch allowlist. Reddit's http-fetch-policy explicitly approves Firebase domains. Strategy: only the `/devvit/scan` endpoint moves to a Firebase Function (which proxies into the Cloud Run API). Dashboard / queue / analytics / config stay on Cloud Run unchanged. |
 | 2026-05-02 | Smoke test pass (primary user) | Cloud Run logs clean across full click-through: tenant auto-create, Config GET/POST persisted, queue/analytics/mod-log/stats/healthz all 2xx, ETag caching observed. Multi-tenant + cross-browser still untested. |
 | 2026-05-01 | Use Cloud SQL Postgres (us-central1) over fresh Neon | Single-vendor (GCP), terminal-driven via gcloud, no Replit-style middleman risk. Trade-off: ~$10–15/mo vs Neon free. |
 | 2026-05-01 | Cloud Run service in us-central1, not us-east5 | us-east5 doesn't support direct domain mappings or Firebase Hosting `run` rewrites. |
@@ -76,6 +79,14 @@ a long debugging session ended with the stack fully on Google Cloud
 | 2026-05-01 | New Cloud SQL DB starts empty | The Replit-provisioned Neon DB was disabled outside our control. ~4 historical signups lost; small enough to email and re-onboard. |
 
 ## Known traps and lessons
+
+- **Reddit's Devvit http-fetch policy rejects custom backends including
+  `*.run.app`.** Per the policy doc, only specific approved cloud-provider
+  subdomains (Supabase, Firebase explicitly named) pass, plus
+  publicly-documented public APIs. We tried `api.panoptesai.net` (rejected),
+  `panoptes-api-….us-central1.run.app` (rejected), and several Replit
+  subdomains (all rejected). The Devvit-facing endpoint must live behind a
+  recognized PaaS host — Firebase Functions is the pragmatic landing zone.
 
 - **Replit's DNS panel REPLACES records on certain "save" flows** instead of
   appending. We lost 6 records (www, clerk.www, accounts.www, clkmail.www,

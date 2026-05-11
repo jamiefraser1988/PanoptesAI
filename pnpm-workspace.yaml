@@ -32,6 +32,7 @@ packages:
   - lib/*
   - lib/integrations/*
   - scripts
+  - functions
 
 catalog:
   '@tailwindcss/vite': ^4.1.14
