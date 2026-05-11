@@ -11,6 +11,13 @@
 
 import { onRequest } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
+import { defineSecret } from "firebase-functions/params";
+
+/**
+ * Mounted from Google Secret Manager (project `panoptesaimod`,
+ * secret name `scan-proxy-secret`). Cloud Run validates this header.
+ */
+const scanProxySecret = defineSecret("scan-proxy-secret");
 
 const UPSTREAM_DEFAULT =
   "https://panoptes-api-909111042785.us-central1.run.app/api/devvit/scan";
@@ -23,15 +30,6 @@ const UPSTREAM_DEFAULT =
  */
 const UPSTREAM_URL = process.env.SCORING_UPSTREAM_URL ?? UPSTREAM_DEFAULT;
 
-/**
- * Optional shared secret. When set, the function forwards it to Cloud Run
- * in an X-Scan-Proxy-Secret header. Pair this with middleware on the
- * Cloud Run /api/devvit/scan route to reject anything that isn't from
- * this function. Skip for now if you want zero-friction setup; add when
- * tightening security.
- */
-const PROXY_SECRET = process.env.SCAN_PROXY_SECRET;
-
 export const devvitScan = onRequest(
   {
     region: "us-central1",
@@ -41,8 +39,10 @@ export const devvitScan = onRequest(
     concurrency: 80,
     minInstances: 0,
     maxInstances: 10,
+    secrets: [scanProxySecret],
   },
   async (req, res) => {
+    const PROXY_SECRET = scanProxySecret.value();
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method not allowed" });
       return;

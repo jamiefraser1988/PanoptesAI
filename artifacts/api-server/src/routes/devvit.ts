@@ -289,7 +289,33 @@ async function tryShadowAnalysis(req: ScanRequest): Promise<ShadowAnalysisResult
   }
 }
 
+/**
+ * Shared-secret guard for the Devvit-facing scoring endpoint. The only
+ * legitimate caller is the Firebase Cloud Function (devvitScan), which is
+ * what Reddit's http-fetch allowlist actually approves. Direct callers
+ * are rejected so we don't leak scoring decisions or burn DB capacity on
+ * traffic from anyone who finds this URL.
+ *
+ * If SCAN_PROXY_SECRET is unset (e.g. local dev), the guard is bypassed.
+ * In production it's loaded from Secret Manager via Cloud Run secret
+ * mount.
+ */
+const SCAN_PROXY_SECRET = (process.env.SCAN_PROXY_SECRET ?? "").trim();
+
+function requireScanProxySecret(
+  req: import("express").Request,
+  res: import("express").Response,
+): boolean {
+  if (!SCAN_PROXY_SECRET) return true; // dev / unconfigured
+  const provided = (req.header("x-scan-proxy-secret") ?? "").trim();
+  if (provided && provided === SCAN_PROXY_SECRET) return true;
+  res.status(403).json({ error: "Forbidden" });
+  return false;
+}
+
 router.post("/devvit/scan", async (req, res): Promise<void> => {
+  if (!requireScanProxySecret(req, res)) return;
+
   const scanReq = req.body as ScanRequest;
   const cleanSubreddit = cleanSubredditName(scanReq.subreddit);
   const cleanAuthor = trimString(scanReq.author);
