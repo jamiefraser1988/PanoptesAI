@@ -46,15 +46,20 @@ verified account + Firebase domain):
   reasons, logged in monitor mode. Benign control scored sub-threshold
   (no log). Zero Devvit domain approval needed
   (`generativelanguage.googleapis.com` globally allowlisted).
+- **v1 report-with-score + active removal PROVEN (2026-05-16).**
+  r/amunai_dev: two scam comments scored 100 & 95 → reported into the
+  native modqueue with score+reasons → removed in active mode. Full
+  pipeline (detect → surface reasoning in Reddit's own tools → enforce)
+  works with no dashboard and no API. Mod log + modqueue ARE the
+  zero-infra activity feed.
 
 ## What's next
 
 1. **v1 hardening + hackathon submission** (deadline 2026-05-27).
-   (a) Flip `actionMode=active` in dev portal, re-test that removal
-   actually fires (only monitor mode proven so far). (b) Cost control:
-   pre-filter to skip Gemini for short/low-signal content + Redis
-   content-hash cache so identical spam scores once. (c) Polish README,
-   submit to https://mod-tools-migration.devpost.com.
+   (a) DONE — active removal + report-with-score proven live.
+   (b) Cost control: pre-filter to skip Gemini for short/low-signal
+   content + Redis content-hash cache so identical spam scores once.
+   (c) Polish README, submit to https://mod-tools-migration.devpost.com.
 2. **v2 — dashboard live data. ONLY two viable paths (both
    post-hackathon):**
    (a) **Office-hours domain approval** — get a Reddit admin to approve
