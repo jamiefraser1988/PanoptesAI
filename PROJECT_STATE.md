@@ -47,12 +47,29 @@ a long debugging session ended with the stack fully on Google Cloud
    - [ ] (Post-Devvit-exception) install Devvit app on a test sub, make a
          post, see it in queue with a score
 
-1. **Stand up Firebase Cloud Function as the Devvit-facing scoring endpoint.**
-   The function proxies POST /scan into the existing Cloud Run API
-   (private, IAM-gated). Point Devvit at the resulting
-   `*.cloudfunctions.net` URL. Re-upload Devvit; this domain should pass
-   Reddit's review since Firebase is explicitly on the approved PaaS list.
-   See Decision Log 2026-05-02 for context.
+1. **Register for the Reddit Mod Tools Migration Hackathon** at
+   https://mod-tools-migration.devpost.com (deadline May 27 2026). Use
+   office hours / r/Devvit / Discord to escalate the domain-rejection
+   blocker with the prepared question (see Decision Log + the rebuild
+   runbook below). This is now the primary path to unblock live data.
+   The Firebase Function (`devvitScan`) is already deployed, locked to a
+   shared secret, and proxying correctly into Cloud Run — only Reddit's
+   fetch-domain approval is missing.
+
+   **Clean-rebuild runbook (prep in parallel; execute if Reddit says
+   "app reputation"):**
+   - Archive `panoptesaimod` in the dev portal.
+   - `cd devvit-app && devvit new` (or `devvit init`) → pick a fresh
+     identifier, e.g. `panoptes-mod`.
+   - Set `name:` in `devvit-app/devvit.yaml` to the new identifier
+     (only code change needed — everything else is already clean).
+   - On the new app's dev-portal page set Terms = `https://www.panoptesai.net/terms`,
+     Privacy = `https://www.panoptesai.net/privacy` BEFORE first upload.
+   - `devvit upload` then `devvit publish`.
+   - Domain `us-central1-panoptesaimod.cloudfunctions.net` is already in
+     `devvit.yaml`/`main.ts` — it carries over unchanged.
+   - If the new identifier differs, the Firebase Function name/URL does
+     NOT need to change (function is project-scoped, not app-scoped).
 2. **Swap apex A record** at Replit DNS panel: delete `@ A 34.111.179.208`,
    add `@ A 199.36.158.100`. Firebase already has the apex domain claimed
    (state `HOST_MISMATCH`), waiting on this single record change. Once done,
@@ -70,7 +87,8 @@ a long debugging session ended with the stack fully on Google Cloud
 
 | Date | Decision | Why |
 |---|---|---|
-| 2026-05-02 | Pivot Devvit-facing scoring endpoint to Firebase Cloud Functions (Option E) | Reddit rejected both `api.panoptesai.net` (custom domain) and `panoptes-api-…run.app` (Cloud Run subdomain) for the Devvit http-fetch allowlist. Reddit's http-fetch-policy explicitly approves Firebase domains. Strategy: only the `/devvit/scan` endpoint moves to a Firebase Function (which proxies into the Cloud Run API). Dashboard / queue / analytics / config stay on Cloud Run unchanged. |
+| 2026-05-02 | Enter the Reddit Mod Tools Migration Hackathon (Apr 29–May 27 2026) as the channel to unblock domain rejections | Firebase Functions domain ALSO rejected — that's 5/5 rejections including a domain Reddit's own policy approves. Conclusion: app- or account-level flag, not a domain-format issue. The hackathon offers live office hours / Discord with Reddit staff — a warm human channel to escalate, plus $45k prize + Developer Funds path. Prep a clean-slate rebuild (new app identifier) in parallel so we can submit a working app pending only the fetch-domain approval. |
+| 2026-05-02 | Pivot Devvit-facing scoring endpoint to Firebase Cloud Functions (Option E) | Reddit rejected both `api.panoptesai.net` (custom domain) and `panoptes-api-…run.app` (Cloud Run subdomain) for the Devvit http-fetch allowlist. Reddit's http-fetch-policy explicitly approves Firebase domains. Strategy: only the `/devvit/scan` endpoint moves to a Firebase Function (which proxies into the Cloud Run API). Dashboard / queue / analytics / config stay on Cloud Run unchanged. NOTE: this domain was subsequently also rejected — see hackathon row above. |
 | 2026-05-02 | Smoke test pass (primary user) | Cloud Run logs clean across full click-through: tenant auto-create, Config GET/POST persisted, queue/analytics/mod-log/stats/healthz all 2xx, ETag caching observed. Multi-tenant + cross-browser still untested. |
 | 2026-05-01 | Use Cloud SQL Postgres (us-central1) over fresh Neon | Single-vendor (GCP), terminal-driven via gcloud, no Replit-style middleman risk. Trade-off: ~$10–15/mo vs Neon free. |
 | 2026-05-01 | Cloud Run service in us-central1, not us-east5 | us-east5 doesn't support direct domain mappings or Firebase Hosting `run` rewrites. |
