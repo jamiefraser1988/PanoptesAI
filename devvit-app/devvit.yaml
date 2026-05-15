@@ -1,5 +1,5 @@
-name: panoptesaimod
-version: 0.0.7
+name: amunai
+version: 0.0.1
 permissions:
   http:
     enable: true

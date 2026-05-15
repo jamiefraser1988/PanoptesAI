@@ -1,16 +1,23 @@
 # PROJECT_STATE.md
 
-_Last updated: 2026-05-01_
+_Last updated: 2026-05-15_
 
 ## Thesis
 
-PanoptesAI is a Reddit moderation SaaS. A Devvit app on Reddit ingests
-posts/comments, the Node/Express API scores them for scam/bot risk and
-persists to Postgres, and the React dashboard lets mods triage the queue,
-configure rules, and view analytics. As of 2026-05-01, the product is
-mid-migration off Replit and being prepared for first paying users —
-a long debugging session ended with the stack fully on Google Cloud
-(Firebase Hosting + Cloud Run + Cloud SQL + Clerk Production).
+PanoptesAI is a Reddit scam/bot moderation tool. **Bifurcated as of
+2026-05-15** after conclusively proving Reddit will not approve any
+custom fetch domain for the Devvit app (tested every permutation incl.
+verified account + Firebase domain):
+
+- **v1 (hackathon, ships now):** Devvit app `amunai` calls the Gemini
+  API (`generativelanguage.googleapis.com`, globally allowlisted — no
+  approval gate) directly for scam scoring + autonomous moderation
+  action. Self-contained. No dashboard data.
+- **v2 (post office-hours):** the full SaaS — Cloud Run + Cloud SQL +
+  React dashboard (queue/analytics/config) — lights up only if/when a
+  Reddit admin approves a custom fetch domain via the human review
+  channel. The stack is built and working; it's just unreachable from
+  Devvit until then.
 
 ## What's done
 
@@ -32,62 +39,47 @@ a long debugging session ended with the stack fully on Google Cloud
   v0.0.7 uploaded **and published** to Reddit
 - Global agent house rules added to `~/.claude/CLAUDE.md`,
   `~/.codex/AGENTS.md`, `~/.copilot/agents/durable-memory.agent.md`
+- **v1 Gemini bot PROVEN working end-to-end (2026-05-15).** App `amunai`
+  (modern Devvit Web scaffold at `C:/Users/jamie/amunai`, verified
+  account `LopsidedDare5491`). r/amunai_dev live test: scam-bait comment
+  → CommentSubmit trigger → Gemini 2.5 Flash → 100/100 with accurate
+  reasons, logged in monitor mode. Benign control scored sub-threshold
+  (no log). Zero Devvit domain approval needed
+  (`generativelanguage.googleapis.com` globally allowlisted).
 
 ## What's next
 
-0. **Smoke test the migrated stack end-to-end before inviting users.**
-   Self-test as primary user passed 2026-05-02 — config save x2,
-   queue/analytics/mod-log/config all 2xx, no app-level errors in Cloud
-   Run logs across the test window. Outstanding subtasks:
-   - [ ] Fresh sign-up with a second Google account in incognito —
-         confirms tenant isolation / multi-tenant scoping
-   - [ ] Mobile cellular smoke test (not WiFi) — confirms Clerk JS loads
-         outside dev network conditions
-   - [ ] Edge browser smoke test — confirms no Chrome-specific assumptions
-   - [ ] (Post-Devvit-exception) install Devvit app on a test sub, make a
-         post, see it in queue with a score
-
-1. **Register for the Reddit Mod Tools Migration Hackathon** at
-   https://mod-tools-migration.devpost.com (deadline May 27 2026). Use
-   office hours / r/Devvit / Discord to escalate the domain-rejection
-   blocker with the prepared question (see Decision Log + the rebuild
-   runbook below). This is now the primary path to unblock live data.
-   The Firebase Function (`devvitScan`) is already deployed, locked to a
-   shared secret, and proxying correctly into Cloud Run — only Reddit's
-   fetch-domain approval is missing.
-
-   **Clean-rebuild runbook (prep in parallel; execute if Reddit says
-   "app reputation"):**
-   - Archive `panoptesaimod` in the dev portal.
-   - `cd devvit-app && devvit new` (or `devvit init`) → pick a fresh
-     identifier, e.g. `panoptes-mod`.
-   - Set `name:` in `devvit-app/devvit.yaml` to the new identifier
-     (only code change needed — everything else is already clean).
-   - On the new app's dev-portal page set Terms = `https://www.panoptesai.net/terms`,
-     Privacy = `https://www.panoptesai.net/privacy` BEFORE first upload.
-   - `devvit upload` then `devvit publish`.
-   - Domain `us-central1-panoptesaimod.cloudfunctions.net` is already in
-     `devvit.yaml`/`main.ts` — it carries over unchanged.
-   - If the new identifier differs, the Firebase Function name/URL does
-     NOT need to change (function is project-scoped, not app-scoped).
-2. **Swap apex A record** at Replit DNS panel: delete `@ A 34.111.179.208`,
-   add `@ A 199.36.158.100`. Firebase already has the apex domain claimed
-   (state `HOST_MISMATCH`), waiting on this single record change. Once done,
-   `panoptesai.net` (no www) serves the dashboard instead of the Replit
-   "Asset Manager" sign-in page that's there now.
-3. **Migrate DNS to Cloudflare** — zone exists at Cloudflare (`pending`),
-   nameservers still at name.com. Switch nameservers to
-   `clint.ns.cloudflare.com` and `monroe.ns.cloudflare.com`. Then DNS is
-   manageable via `cf dns` CLI instead of Replit's panel that wipes records.
-4. **Bootstrap commerce / Stripe** — Clerk's commerce_settings show
-   stripe_publishable_key:null. No paid tier wired up yet despite the
-   "paying users" goal. Either enable Clerk Billing or build Stripe-native.
+1. **v1 hardening + hackathon submission** (deadline 2026-05-27).
+   (a) Flip `actionMode=active` in dev portal, re-test that removal
+   actually fires (only monitor mode proven so far). (b) Cost control:
+   pre-filter to skip Gemini for short/low-signal content + Redis
+   content-hash cache so identical spam scores once. (c) Polish README,
+   submit to https://mod-tools-migration.devpost.com.
+2. **v2 — dashboard live data. ONLY two viable paths (both
+   post-hackathon):**
+   (a) **Office-hours domain approval** — get a Reddit admin to approve
+   a custom fetch domain; then Devvit → Firebase fn → Cloud Run → Cloud
+   SQL → dashboard (chain already built/deployed/secret-locked/tested).
+   (b) **Rebuild dashboard inside Devvit** as a Devvit Web view reading
+   Devvit's own Redis (decisions already stored there as
+   `amunai:<thingId>`). No Reddit approval ever needed. Standalone SaaS
+   site at panoptesai.net only works via path (a).
+   NOTE: Gemini function-calling CANNOT relay data to the backend —
+   verified via docs + sequence diagram + SDK sample; execution is
+   always client-side (Devvit, which is blocked). Do not reopen.
+4. **Apex A record swap** (independent, 60s, dashboard hygiene): at
+   Replit DNS panel delete `@ A 34.111.179.208`, add
+   `@ A 199.36.158.100`. Firebase has the apex claimed (HOST_MISMATCH).
+   Makes `panoptesai.net` (no-www) serve the dashboard.
+5. **Stripe / Clerk Billing** — only meaningful once v2 unblocks; the
+   dashboard is the monetization surface. Deferred.
 
 ## Decision Log
 
 | Date | Decision | Why |
 |---|---|---|
-| 2026-05-02 | Enter the Reddit Mod Tools Migration Hackathon (Apr 29–May 27 2026) as the channel to unblock domain rejections | Firebase Functions domain ALSO rejected — that's 5/5 rejections including a domain Reddit's own policy approves. Conclusion: app- or account-level flag, not a domain-format issue. The hackathon offers live office hours / Discord with Reddit staff — a warm human channel to escalate, plus $45k prize + Developer Funds path. Prep a clean-slate rebuild (new app identifier) in parallel so we can submit a working app pending only the fetch-domain approval. |
+| 2026-05-15 | Bifurcate: Gemini-direct v1 (ship now) + dashboard v2 (office-hours-gated) | PROBE CONCLUSIVE. On verified account `LopsidedDare5491`, fresh clean app `amunai`, full metadata: `us-central1-panoptesaimod.cloudfunctions.net` auto-rejected again (Pending→Rejected in <5min). `generativelanguage.googleapis.com` (globally allowlisted) never even generated an exceptions row = no per-app gate = usable now. Every controllable variable disproven (domain format, account verification, app reputation, metadata). Custom fetch domains require human admin approval, full stop. So: v1 calls Gemini directly (no gate), v2 dashboard waits on office-hours domain approval. |
+| 2026-05-02 | Enter the Reddit Mod Tools Migration Hackathon (Apr 29–May 27 2026) as the channel to unblock domain rejections | Firebase Functions domain ALSO rejected. Conclusion (later confirmed 2026-05-15): custom fetch domains are human-gated, not config-gated. Hackathon office hours = the warm human channel + $45k prize. |
 | 2026-05-02 | Pivot Devvit-facing scoring endpoint to Firebase Cloud Functions (Option E) | Reddit rejected both `api.panoptesai.net` (custom domain) and `panoptes-api-…run.app` (Cloud Run subdomain) for the Devvit http-fetch allowlist. Reddit's http-fetch-policy explicitly approves Firebase domains. Strategy: only the `/devvit/scan` endpoint moves to a Firebase Function (which proxies into the Cloud Run API). Dashboard / queue / analytics / config stay on Cloud Run unchanged. NOTE: this domain was subsequently also rejected — see hackathon row above. |
 | 2026-05-02 | Smoke test pass (primary user) | Cloud Run logs clean across full click-through: tenant auto-create, Config GET/POST persisted, queue/analytics/mod-log/stats/healthz all 2xx, ETag caching observed. Multi-tenant + cross-browser still untested. |
 | 2026-05-01 | Use Cloud SQL Postgres (us-central1) over fresh Neon | Single-vendor (GCP), terminal-driven via gcloud, no Replit-style middleman risk. Trade-off: ~$10–15/mo vs Neon free. |
@@ -98,13 +90,19 @@ a long debugging session ended with the stack fully on Google Cloud
 
 ## Known traps and lessons
 
-- **Reddit's Devvit http-fetch policy rejects custom backends including
-  `*.run.app`.** Per the policy doc, only specific approved cloud-provider
-  subdomains (Supabase, Firebase explicitly named) pass, plus
-  publicly-documented public APIs. We tried `api.panoptesai.net` (rejected),
-  `panoptes-api-….us-central1.run.app` (rejected), and several Replit
-  subdomains (all rejected). The Devvit-facing endpoint must live behind a
-  recognized PaaS host — Firebase Functions is the pragmatic landing zone.
+- **Devvit custom fetch-domain requests are HUMAN-gated and auto-reject
+  in ~4 min. No config change fixes this — escalate to a human instead.**
+  Conclusively tested 2026-05-02..05-15. Disproven, in order: domain
+  format (custom / `*.run.app` / `*.cloudfunctions.net`), account
+  verification (unverified→verified `LopsidedDare5491`), app reputation
+  (old `panoptesaimod`→fresh `amunai`), metadata (blank→full
+  Terms/Privacy/desc). 7+ rejections across every permutation. The
+  policy doc's "approved list" (Firebase/Supabase) means *eligible for
+  human review*, NOT auto-approved. **Globally-allowlisted domains
+  (e.g. `generativelanguage.googleapis.com`, `api.openai.com`) bypass
+  the gate entirely — they never generate an exceptions row.** Lesson:
+  when an input you can change keeps failing identically, the gate is
+  on a variable you can't change — stop iterating, find the human.
 
 - **Replit's DNS panel REPLACES records on certain "save" flows** instead of
   appending. We lost 6 records (www, clerk.www, accounts.www, clkmail.www,
