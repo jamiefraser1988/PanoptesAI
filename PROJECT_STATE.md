@@ -110,6 +110,23 @@ verified account + Firebase domain):
 
 ## Known traps and lessons
 
+- **Browser-automation dumped real secrets into the repo (2026-05-16).**
+  `output/` (chrome-history-copy*.db ×3 @19MB, chrome-login-data-copy.db
+  = Chrome saved-password store, dashboard screenshots) was never
+  gitignored and rode into commit `265f5fc`. GitHub push-protection
+  blocked the push: Google OAuth access tokens, Amazon LWA client
+  secret+id, +5 more. VERIFIED never reached origin (origin@55dfdee is
+  ancestor of 265f5fc; no output/*.db in pushed history) — caught
+  pre-exposure. Remediation: `output/` now gitignored; history purge
+  via `git filter-repo --path output --invert-paths` (one local commit,
+  not pushed, NO force-push needed); rotate the long-lived Amazon LWA
+  client secret as insurance. Lesson: gitignore artifact/output dirs
+  BEFORE the first run of any browser-automation that touches a real
+  profile — those tools emit secret-bearing files by default, and the
+  two-file system protects project state, not the repo from harvested
+  local junk. Do a secret scan before the first push of any
+  long-running repo.
+
 - **v1 scoring prompt is UNSAFE on victim/discussion subs (MEASURED
   2026-05-16).** Offline replay harness (`amunai/scripts/replay.ts`),
   r/scams, 80 real items: 4/4 flagged were victims/help-seekers, 0
