@@ -110,6 +110,31 @@ verified account + Firebase domain):
 
 ## Known traps and lessons
 
+- **v1 scoring prompt is UNSAFE on victim/discussion subs (MEASURED
+  2026-05-16).** Offline replay harness (`amunai/scripts/replay.ts`),
+  r/scams, 80 real items: 4/4 flagged were victims/help-seekers, 0
+  scammers; 2 got `action=remove` (incl. a post literally titled "Am I
+  being scammed by this job offer?" → 90/remove). Root cause: prompt
+  scores "is a scam *described* here" not "is the *author* scamming".
+  Confidently wrong (flags at 75/90/95/100, nothing 40-69) so threshold
+  tuning cannot fix it; needs a forced `authorRole` intent
+  classification that caps non-perpetrator content low. Earlier "v1
+  PROVEN" was an overclaim — proven only for blatant scammers on a quiet
+  test sub; demonstrably unsafe in active mode on any scam/fraud/support
+  community. Baseline to beat: flagged 4/80, FP 4/4, auto-remove 2.
+  **RESOLVED 2026-05-16 (same day):** added forced `authorRole`
+  classification (perpetrator | victim_or_reporting | warning |
+  discussion | normal) as a required structured-output field + a code
+  backstop in `scoreContent` capping any non-perpetrator to ≤10 / allow
+  (the catastrophic outcome is now unrepresentable, not just
+  discouraged). Re-measured same sub: r/scams 0/80 flagged (was 4/4 FP,
+  2 remove). Discrimination fixtures (`amunai/scripts/tp-check.ts`) 6/6:
+  3/3 perpetrators incl. the subtle soft-sell still caught 90-95/remove;
+  3/3 victim/warning/normal capped/allow. FP eliminated without killing
+  detection. Residual unknown: wild-perpetrator recall AT SCALE — no
+  readable perpetrator-dense sub to sample, so comprehensive recall
+  stays unverified (representative-fixture recall only).
+
 - **Devvit custom fetch-domain requests are HUMAN-gated and auto-reject
   in ~4 min. No config change fixes this — escalate to a human instead.**
   Conclusively tested 2026-05-02..05-15. Disproven, in order: domain
