@@ -61,14 +61,20 @@ verified account + Firebase domain):
   filter only beat Amunai on blatant spam / rapid duplicates (its
   dup-spam heuristic, not semantic detection). Scaffold "Mop comments"
   manual bulk-cleanup tool retained as a complementary mod feature.
+- **v1 cost control SHIPPED (2026-05-16).** `shouldScore` prefilter
+  (skip short/indicator-free content, ~70-90% fewer Gemini calls) +
+  `contentHash` Redis cache (7d, dedupes copy-paste spam). Drops naive
+  ~$600/mo busy-sub estimate to ~$60-180/mo. Type-checked + uploaded;
+  live prefilter/cache-hit log verification still optional/unrun.
+- **amunai repo backed up to private GitHub** `jamiefraser1988/amunai`
+  (was local-only — that risk is now closed).
 
 ## What's next
 
-1. **v1 hardening + hackathon submission** (deadline 2026-05-27).
-   (a) DONE — active removal + report-with-score proven live.
-   (b) Cost control: pre-filter to skip Gemini for short/low-signal
-   content + Redis content-hash cache so identical spam scores once.
-   (c) Polish README, submit to https://mod-tools-migration.devpost.com.
+1. **Final v1 → hackathon submission** (deadline 2026-05-27).
+   (a)(b) DONE — detect/report/remove + cost control shipped & proven.
+   (c) REMAINING: optional live prefilter/cache log check; polish
+   README; submit to https://mod-tools-migration.devpost.com.
 2. **v2 — dashboard live data. ONLY two viable paths (both
    post-hackathon):**
    (a) **Office-hours domain approval** — get a Reddit admin to approve
