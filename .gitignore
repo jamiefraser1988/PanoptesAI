@@ -52,3 +52,4 @@ Thumbs.db
 # Per-user agent state (Claude Code, etc.)
 /.claude/scheduled_tasks.lock
 /.claude/settings.local.json
+output/
