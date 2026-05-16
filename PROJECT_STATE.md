@@ -52,6 +52,15 @@ verified account + Firebase domain):
   pipeline (detect → surface reasoning in Reddit's own tools → enforce)
   works with no dashboard and no API. Mod log + modqueue ARE the
   zero-infra activity feed.
+- **v1 removal-reason note + core value PROVEN (2026-05-16).**
+  `addRemovalNote` attaches `Amunai <score>/100: <reasons>` to removed
+  items — visibly confirmed in the Removed modqueue/hover (durable,
+  survives removal). Thesis validated: a SUBTLE soft-sell scam (no
+  keywords/links, "DM me about a mentor's private group") that Reddit's
+  native filters miss was caught 90/100 with visible reasoning. Reddit's
+  filter only beat Amunai on blatant spam / rapid duplicates (its
+  dup-spam heuristic, not semantic detection). Scaffold "Mop comments"
+  manual bulk-cleanup tool retained as a complementary mod feature.
 
 ## What's next
 
